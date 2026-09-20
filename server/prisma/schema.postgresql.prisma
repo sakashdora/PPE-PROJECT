@@ -1,0 +1,164 @@
+// Prisma schema for Factory Safety AI On-Prem Server (PostgreSQL Production)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VIEWER
+  SUPERVISOR
+  ADMIN
+}
+
+enum Severity {
+  CRITICAL
+  WARNING
+  COMPLIANCE
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  FALSE_ALARM
+}
+
+enum ZoneKind {
+  SMOKING_RESTRICTED
+  PPE_REQUIRED
+  IGNORE
+}
+
+model Site {
+  id        String     @id @default(uuid())
+  name      String
+  sectors   Sector[]
+  edgeNodes EdgeNode[]
+  createdAt DateTime   @default(now())
+}
+
+model Sector {
+  id        String   @id @default(uuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name      String
+  cameras   Camera[]
+  createdAt DateTime @default(now())
+}
+
+model EdgeNode {
+  id         String    @id @default(uuid())
+  siteId     String
+  site       Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name       String
+  apiKeyHash String
+  lastSeenAt DateTime?
+  fps        Float?
+  latencyMs  Float?
+  status     String    @default("unknown")
+  cameras    Camera[]
+  createdAt  DateTime  @default(now())
+}
+
+model Camera {
+  id           String    @id @default(uuid())
+  sectorId     String
+  sector       Sector    @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+  edgeNodeId   String
+  edgeNode     EdgeNode  @relation(fields: [edgeNodeId], references: [id], onDelete: Cascade)
+  name         String
+  streamUrlEnc String
+  enabled      Boolean   @default(true)
+  status       String    @default("unknown")
+  lastFrameAt  DateTime?
+  zones        Zone[]
+  alerts       Alert[]
+  createdAt    DateTime  @default(now())
+}
+
+model Zone {
+  id        String   @id @default(uuid())
+  cameraId  String
+  camera    Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  kind      ZoneKind
+  polygon   Json
+  createdAt DateTime @default(now())
+}
+
+model ModelVersion {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  metrics    Json
+  thresholds Json
+  active     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model ConfigState {
+  id        Int      @id @default(1)
+  version   Int      @default(1)
+  params    Json
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Alert {
+  id           String      @id
+  cameraId     String
+  camera       Camera      @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  dedupKey     String
+  severity     Severity
+  type         String
+  items        String[]
+  confidence   Float
+  votes        String?
+  hitCount     Int         @default(1)
+  firstSeenAt  DateTime
+  lastSeenAt   DateTime
+  status       AlertStatus @default(OPEN)
+  version      Int         @default(1)
+  snapshotPath String?
+  modelVersion String?
+  ackById      String?
+  ackAt        DateTime?
+  note         String?
+
+  @@index([status, severity, firstSeenAt])
+  @@index([cameraId, dedupKey, lastSeenAt])
+}
+
+model AlertEvent {
+  seq       BigInt   @id @default(autoincrement())
+  alertId   String
+  kind      String
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([alertId])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id       String   @id @default(uuid())
+  userId   String?
+  action   String
+  entity   String
+  entityId String?
+  meta     Json
+  at       DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([at])
+}

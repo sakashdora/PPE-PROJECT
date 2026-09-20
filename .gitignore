@@ -1,0 +1,80 @@
+# ─── Node / Next.js ───────────────────────────────────────
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnp
+.pnp.js
+
+# ─── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+*.pyc
+
+# ─── Databases (dev runtime state) ───────────────────────
+server/prisma/dev.db
+server/prisma/dev.db-journal
+outbox.db
+outbox.db-journal
+
+# ─── Snapshots / Media ───────────────────────────────────
+snapshots/
+!web/public/snapshots/.gitkeep
+
+# ─── ML / Training Data ──────────────────────────────────────
+# Raw downloaded datasets (multi-GB, fetched via Kaggle API — see ml/sources.yaml)
+raw/
+ds/
+# Exclude large image/label folders
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tif
+*.tiff
+# Re-include small non-training images tracked explicitly (none yet)
+# Keep the exported ONNX model
+!models/best.onnx
+
+# ─── Environment / Secrets ───────────────────────────────
+.env
+.env.local
+.env.production
+.env*.local
+# Keep the example template
+!infra/.env.example
+!server/.env.example
+
+# ─── IDE / OS ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── Logs ─────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Docker ───────────────────────────────────────────────
+# Keep docker-compose and Dockerfiles tracked

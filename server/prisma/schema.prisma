@@ -1,0 +1,142 @@
+// Prisma schema for Factory Safety AI On-Prem Server
+// Local Development: SQLite (file:./dev.db)
+// Production Docker: PostgreSQL (see schema.postgresql.prisma)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Site {
+  id        String     @id @default(uuid())
+  name      String
+  sectors   Sector[]
+  edgeNodes EdgeNode[]
+  createdAt DateTime   @default(now())
+}
+
+model Sector {
+  id        String   @id @default(uuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name      String
+  cameras   Camera[]
+  createdAt DateTime @default(now())
+}
+
+model EdgeNode {
+  id         String    @id @default(uuid())
+  siteId     String
+  site       Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name       String
+  apiKeyHash String
+  lastSeenAt DateTime?
+  fps        Float?
+  latencyMs  Float?
+  status     String    @default("unknown") // "online" | "offline" | "degraded" | "unknown"
+  cameras    Camera[]
+  createdAt  DateTime  @default(now())
+}
+
+model Camera {
+  id           String    @id @default(uuid())
+  sectorId     String
+  sector       Sector    @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+  edgeNodeId   String
+  edgeNode     EdgeNode  @relation(fields: [edgeNodeId], references: [id], onDelete: Cascade)
+  name         String
+  streamUrlEnc String    // AES-GCM encrypted, never sent to browser
+  enabled      Boolean   @default(true)
+  status       String    @default("unknown") // "online" | "offline" | "stalled" | "unknown"
+  lastFrameAt  DateTime?
+  zones        Zone[]
+  alerts       Alert[]
+  createdAt    DateTime  @default(now())
+}
+
+model Zone {
+  id        String   @id @default(uuid())
+  cameraId  String
+  camera    Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  kind      String   // "SMOKING_RESTRICTED" | "PPE_REQUIRED" | "IGNORE"
+  polygon   String   // JSON string: [[x, y], ...] normalized 0.0 - 1.0
+  createdAt DateTime @default(now())
+}
+
+model ModelVersion {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  metrics    String   // JSON string of evaluation report metrics
+  thresholds String   // JSON string of calibrated decision thresholds
+  active     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model ConfigState {
+  id        Int      @id @default(1)
+  version   Int      @default(1) // incremented on any configuration change
+  params    String   // JSON string: voter params, cooldowns, shifts
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Alert {
+  id           String    @id // UUID generated on edge = idempotency key
+  cameraId     String
+  camera       Camera    @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  dedupKey     String    // e.g. "helmet" | "fire" | "smoke"
+  severity     String    // "CRITICAL" | "WARNING" | "COMPLIANCE"
+  type         String    // "fire" | "smoke" | "smoking" | "ppe_missing"
+  items        String    // JSON string array e.g. '["helmet", "vest"]'
+  confidence   Float
+  votes        String?   // e.g. "2/5"
+  hitCount     Int       @default(1)
+  firstSeenAt  DateTime
+  lastSeenAt   DateTime
+  status       String    @default("OPEN") // "OPEN" | "ACKNOWLEDGED" | "RESOLVED" | "FALSE_ALARM"
+  version      Int       @default(1)      // Compare-and-Swap version counter
+  snapshotPath String?
+  modelVersion String?
+  ackById      String?
+  ackAt        DateTime?
+  note         String?
+
+  @@index([status, severity, firstSeenAt])
+  @@index([cameraId, dedupKey, lastSeenAt])
+}
+
+model AlertEvent {
+  seq       Int      @id @default(autoincrement()) // sequential monotonic ID for WS gapless replay
+  alertId   String
+  kind      String   // "created" | "updated" | "transition"
+  payload   String   // JSON string representation of Alert row
+  createdAt DateTime @default(now())
+
+  @@index([alertId])
+  @@index([seq])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("VIEWER") // "VIEWER" | "SUPERVISOR" | "ADMIN"
+  createdAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id       String   @id @default(uuid())
+  userId   String?
+  action   String   // "login" | "ack" | "resolve" | "false_alarm" | "config_change"
+  entity   String   // "alert" | "camera" | "config" | "user"
+  entityId String?
+  meta     String   // JSON string metadata
+  at       DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([at])
+}

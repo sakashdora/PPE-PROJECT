@@ -1,0 +1,92 @@
+version: "3.8"
+
+services:
+  # 1. On-Premise PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: factory-safety-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-factory_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-FactorySafeSecure2026!}
+      POSTGRES_DB: ${POSTGRES_DB:-factory_safety}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-factory_admin} -d ${POSTGRES_DB:-factory_safety}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - factory-net
+
+  # 2. On-Premise Backend Server (NestJS)
+  server:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    container_name: factory-safety-server
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-factory_admin}:${POSTGRES_PASSWORD:-FactorySafeSecure2026!}@postgres:5432/${POSTGRES_DB:-factory_safety}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-key-factory-safety-ai-2026}
+      JWT_EXPIRES_IN: 7d
+      EDGE_API_KEY: ${EDGE_API_KEY:-edge-api-key-factory-plant-01}
+      SNAPSHOTS_DIR: /app/snapshots
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - "4000:4000"
+    volumes:
+      - ../snapshots:/app/snapshots
+    networks:
+      - factory-net
+
+  # 3. Next.js Supervisor Dashboard
+  web:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+    container_name: factory-safety-web
+    restart: always
+    depends_on:
+      - server
+    environment:
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_WS_URL: ws://localhost:4000/ws
+    ports:
+      - "3000:3000"
+    networks:
+      - factory-net
+
+  # 4. Python Edge Worker (Camera Vision & Local Alarm)
+  edge:
+    build:
+      context: ../edge
+      dockerfile: Dockerfile
+    container_name: factory-safety-edge
+    restart: always
+    network_mode: "host" # High-throughput LAN RTSP ingestion and zero-latency local alarm access
+    environment:
+      SERVER_URL: http://localhost:4000
+      EDGE_API_KEY: ${EDGE_API_KEY:-edge-api-key-factory-plant-01}
+      MODEL_PATH: /app/models/best.onnx
+      MJPEG_PORT: 8080
+    volumes:
+      - ../models:/app/models:ro
+      - ../snapshots:/app/snapshots
+      - ../outbox.db:/app/outbox.db
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  factory-net:
+    driver: bridge

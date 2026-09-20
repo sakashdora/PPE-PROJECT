@@ -1,0 +1,110 @@
+# Dataset Ingestion and Class Re-Mapping Catalog
+# Unified 11-Class Schema for Factory Safety AI (PS06)
+unified_classes:
+  0: person
+  1: helmet
+  2: head              # Bare head / no helmet
+  3: vest              # High-visibility safety vest
+  4: gloves            # Safety gloves
+  5: boots             # Steel-toe safety boots
+  6: no_gloves         # Exposed hands without gloves
+  7: no_boots          # Inappropriate footwear
+  8: fire              # Active flame / open fire
+  9: smoke             # Dense industrial smoke
+  10: cigarette        # Smoking in restricted zones
+
+sources:
+  construction_ppe:
+    name: "Ultralytics Construction-PPE"
+    url: "https://github.com/ultralytics/assets/releases/download/v0.0.0/construction-ppe.zip"
+    format: "yolo"
+    raw_dir: "raw/construction-ppe"
+    class_map:
+      0: 1             # native 0 (helmet) -> unified 1 (helmet)
+      1: 4             # native 1 (gloves) -> unified 4 (gloves)
+      2: 3             # native 2 (vest) -> unified 3 (vest)
+      3: 5             # native 3 (boots) -> unified 5 (boots)
+      6: 0             # native 6 (Person) -> unified 0 (person)
+      7: 2             # native 7 (no_helmet) -> unified 2 (head)
+      9: 6             # native 9 (no_gloves) -> unified 6 (no_gloves)
+      10: 7            # native 10 (no_boots) -> unified 7 (no_boots)
+      # 4: goggles (dropped), 5: none (dropped), 8: no_goggle (dropped)
+
+  hard_hat:
+    name: "Kaggle Hard Hat Detection (andrewmvd)"
+    slug: "andrewmvd/hard-hat-detection"
+    format: "voc"
+    raw_dir: "raw/hardhat"
+    class_map:
+      helmet: 1
+      head: 2
+      person: 0
+
+  fire_dataset:
+    name: "Kaggle FIRE Dataset (phylake1337)"
+    format: "fire_classification"
+    raw_dir: "raw/fire"
+    class_map:
+      fire: 8          # fire -> class 8 (open flame)
+      non_fire: -1     # negative background verification sample
+
+  fire_smoke:
+    name: "Datacluster Fire & Smoke (Bounding Boxes)"
+    format: "voc"
+    raw_dir: "raw/fire_smoke"
+    class_map:
+      fire: 8          # fire -> class 8 (open flame)
+      smoke: 9         # smoke -> class 9 (smoke)
+
+  sh17:
+    name: "SH17 Dataset for PPE Detection (mugheesahmad)"
+    format: "yolo"
+    raw_dir: "raw/sh17"
+    class_map:
+      0: 0             # Person -> person (0)
+      1: 2             # Head -> bare head (2)
+      8: 6             # Hands -> bare hands / no_gloves (6)
+      9: 4             # Gloves -> safety gloves (4)
+      10: 7            # Foot -> bare foot / no_boots (7)
+      11: 5            # Shoes -> safety boots (5)
+      12: 3            # Safety-vest -> vest (3)
+      14: 1            # Helmet -> helmet (1)
+
+  wildfire_smoke:
+    name: "WildFire Smoke Dataset (ahemateja19bec1025)"
+    format: "yolo"
+    raw_dir: "raw/smoke/WildFire_Smoke_Dataset_YOLO"
+    class_map:
+      0: 9             # smoke -> smoke (9)
+
+  dfire:
+    name: "D-Fire Dataset"
+    format: "yolo"
+    raw_dir: "raw/dfire"
+    # D-Fire native indices: 0 = smoke, 1 = fire
+    class_map:
+      0: 9             # smoke -> smoke (9)
+      1: 8             # fire -> fire (8)
+
+  cigarette:
+    name: "Roboflow Cigarette Detection"
+    format: "yolo"
+    raw_dir: "raw/cigarette"
+    class_map:
+      0: 10            # cigarette -> cigarette (10)
+
+corner_cases:
+  raw_dir: "raw/corner_cases"
+  categories:
+    - name: "yellow_shirt"
+      expected: "negative_fire"
+      target_fpr: 0.02
+    - name: "caps_and_beanies"
+      expected: "negative_helmet"
+      target_fpr: 0.02
+    - name: "steam_and_vapor"
+      expected: "negative_smoke"
+      target_fpr: 0.02
+    - name: "welding_glare"
+      expected: "negative_fire"
+      target_fpr: 0.02

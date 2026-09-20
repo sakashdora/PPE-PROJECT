@@ -1,0 +1,135 @@
+{
+  "initialAlerts": [
+    {
+      "id": "alt-init-01",
+      "ts": "2026-09-19T22:30:15.000Z",
+      "updatedAt": "2026-09-19T22:30:15.000Z",
+      "cameraId": "cam-01",
+      "sector": "Sector 1 (Loading Bay)",
+      "zoneId": "z-loading-01",
+      "severity": "COMPLIANCE",
+      "type": "missing_ppe",
+      "items": ["gloves"],
+      "confidence": 0.91,
+      "votes": "9/10",
+      "modelVersion": "ppe_v1_s2_openvino",
+      "snapshotUrl": "/snapshots/gloves_viol.jpg",
+      "bbox": [0.25, 0.45, 0.42, 0.85],
+      "status": "acknowledged",
+      "ackBy": "R. Sharma (Supervisor)",
+      "ackAt": "2026-09-19T22:32:00.000Z",
+      "note": "Worker notified to equip cut-resistant gloves"
+    },
+    {
+      "id": "alt-init-02",
+      "ts": "2026-09-19T22:45:10.000Z",
+      "updatedAt": "2026-09-19T22:45:10.000Z",
+      "cameraId": "cam-03",
+      "sector": "Sector 3 (Assembly Line)",
+      "zoneId": "z-assembly-02",
+      "severity": "COMPLIANCE",
+      "type": "missing_ppe",
+      "items": ["boots"],
+      "confidence": 0.88,
+      "votes": "8/10",
+      "modelVersion": "ppe_v1_s2_openvino",
+      "snapshotUrl": "/snapshots/boots_viol.jpg",
+      "bbox": [0.6, 0.7, 0.75, 0.98],
+      "status": "open"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step-1-helmet",
+      "title": "Missing Helmet in Sector 4",
+      "description": "Worker walks into Furnace Hall without a hard hat. Bare head detected inside person bounding box with 8/10 temporal votes.",
+      "event": {
+        "type": "alert.created",
+        "data": {
+          "id": "alt-live-helmet-01",
+          "ts": "2026-09-19T22:50:00.000Z",
+          "updatedAt": "2026-09-19T22:50:00.000Z",
+          "cameraId": "cam-04",
+          "sector": "Sector 4 (Furnace Hall)",
+          "zoneId": "z-furnace-ppe",
+          "severity": "COMPLIANCE",
+          "type": "missing_ppe",
+          "items": ["helmet"],
+          "confidence": 0.94,
+          "votes": "8/10",
+          "modelVersion": "ppe_v1_s2_openvino",
+          "snapshotUrl": "/snapshots/helmet_viol.jpg",
+          "bbox": [0.35, 0.15, 0.55, 0.75],
+          "status": "open"
+        }
+      }
+    },
+    {
+      "id": "step-2-corner-cases",
+      "title": "Corner Case Test (Yellow Shirt & Cap)",
+      "description": "Worker in bright yellow shirt and cap enters view. System verifies negative discrimination: Yellow shirt ≠ Fire, Baseball Cap ≠ Safety Helmet. Zero false alarm fired.",
+      "event": {
+        "type": "corner_case.verified",
+        "data": {
+          "cameraId": "cam-01",
+          "sector": "Sector 1 (Loading Bay)",
+          "testType": "yellow_shirt_and_cap",
+          "outcome": "PASSED_SILENT",
+          "fireConfidence": 0.04,
+          "helmetConfidence": 0.06,
+          "message": "Corner-case negative successfully rejected by calibrated thresholds"
+        }
+      }
+    },
+    {
+      "id": "step-3-fire",
+      "title": "Fire Hazard Breakout (CRITICAL)",
+      "description": "Electrical arc ignition triggers rapid flame detection in Sector 2. Priority jumps to top of queue, siren loop activates, and camera border pulses red.",
+      "event": {
+        "type": "alert.created",
+        "data": {
+          "id": "alt-live-fire-99",
+          "ts": "2026-09-19T22:52:30.000Z",
+          "updatedAt": "2026-09-19T22:52:30.000Z",
+          "cameraId": "cam-02",
+          "sector": "Sector 2 (Chemical Storage)",
+          "zoneId": "z-chem-flammable",
+          "severity": "CRITICAL",
+          "type": "fire",
+          "items": ["fire", "smoke"],
+          "confidence": 0.98,
+          "votes": "4/5",
+          "modelVersion": "ppe_v1_s2_openvino",
+          "snapshotUrl": "/snapshots/fire_event.jpg",
+          "bbox": [0.42, 0.38, 0.68, 0.72],
+          "status": "open"
+        }
+      }
+    },
+    {
+      "id": "step-4-smoking",
+      "title": "Restricted Zone Smoking (WARNING)",
+      "description": "Worker lights cigarette inside restricted chemical storage zone polygon. Classified as immediate supervisor warning.",
+      "event": {
+        "type": "alert.created",
+        "data": {
+          "id": "alt-live-smoking-05",
+          "ts": "2026-09-19T22:54:10.000Z",
+          "updatedAt": "2026-09-19T22:54:10.000Z",
+          "cameraId": "cam-03",
+          "sector": "Sector 3 (Assembly Line)",
+          "zoneId": "z-smoking-restricted",
+          "severity": "WARNING",
+          "type": "smoking",
+          "items": ["smoking"],
+          "confidence": 0.89,
+          "votes": "3/5",
+          "modelVersion": "ppe_v1_s2_openvino",
+          "snapshotUrl": "/snapshots/smoking_event.jpg",
+          "bbox": [0.48, 0.28, 0.58, 0.45],
+          "status": "open"
+        }
+      }
+    }
+  ]
+}
