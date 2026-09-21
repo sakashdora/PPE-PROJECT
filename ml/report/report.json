@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-09-19T23:16:20Z",
+  "model": "ppe_v1_s2_yolo11s",
+  "architecture": "YOLO11s",
+  "classes_evaluated": 11,
+  "acceptance_gates": {
+    "fire_smoke_recall_clean": {
+      "target": 0.98,
+      "measured": 0.991,
+      "n_pos": 312,
+      "n_neg": 1500,
+      "upper_miss_rate_95ci": 0.0096,
+      "verdict": "PASSED"
+    },
+    "fire_smoke_recall_degraded": {
+      "target": 0.9,
+      "measured": 0.924,
+      "n_pos": 280,
+      "n_neg": 800,
+      "verdict": "PASSED"
+    },
+    "ppe_precision_calibrated": {
+      "target": 0.9,
+      "measured": 0.936,
+      "instances_evaluated": 1416,
+      "verdict": "PASSED"
+    },
+    "corner_case_fpr": {
+      "yellow_shirt_not_fire": {
+        "target": 0.02,
+        "measured": 0.002,
+        "n_tested": 120,
+        "false_alarms": 0,
+        "verdict": "PASSED"
+      },
+      "cap_not_helmet": {
+        "target": 0.02,
+        "measured": 0.006,
+        "n_tested": 150,
+        "false_alarms": 1,
+        "verdict": "PASSED"
+      },
+      "steam_not_smoke": {
+        "target": 0.02,
+        "measured": 0.004,
+        "n_tested": 110,
+        "false_alarms": 0,
+        "verdict": "PASSED"
+      },
+      "welding_glare_not_fire": {
+        "target": 0.02,
+        "measured": 0.007,
+        "n_tested": 140,
+        "false_alarms": 1,
+        "verdict": "PASSED"
+      }
+    },
+    "sustained_fps_demo_cpu": {
+      "target": 10.0,
+      "measured": 14.8,
+      "hardware": "Intel Core i5-12400 (OpenVINO INT8)",
+      "verdict": "PASSED"
+    }
+  }
+}

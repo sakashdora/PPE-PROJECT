@@ -67,12 +67,11 @@ export const useAlertsStore = create<AlertState>((set, get) => ({
   seed: (alerts) => {
     set((s) => {
       const byId = { ...s.byId };
-      let cursor = s.cursor;
       for (const a of alerts) {
         byId[a.id] = a;
-        if (!cursor || a.updatedAt > cursor) cursor = a.updatedAt;
       }
-      return { byId, cursor };
+      // cursor (integer WS seq) is advanced only via setSeq() — never via timestamps
+      return { byId };
     });
   },
 
@@ -194,7 +193,7 @@ export const useAlertsStore = create<AlertState>((set, get) => ({
         acc[curr.id] = curr as unknown as Alert;
         return acc;
       }, {} as Record<string, Alert>),
-      cursor: "2026-09-19T22:45:10.000Z",
+      cursor: 0, // integer WS seq — 0 means replay all events from start
       conn: "live",
       disconnectedAt: null,
       selectedAlertId: null,

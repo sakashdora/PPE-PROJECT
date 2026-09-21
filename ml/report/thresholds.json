@@ -1,0 +1,29 @@
+{
+  "model_version": "ppe_v1_s2_yolo11s",
+  "confidence_thresholds": {
+    "fire": 0.65,
+    "smoke": 0.6,
+    "smoking": 0.7,
+    "helmet": 0.75,
+    "head": 0.7,
+    "vest": 0.7,
+    "gloves": 0.65,
+    "boots": 0.65,
+    "person": 0.6
+  },
+  "temporal_voting": {
+    "fire_smoke": {
+      "required_frames": 2,
+      "window_size": 5
+    },
+    "smoking": {
+      "required_frames": 3,
+      "window_size": 5
+    },
+    "ppe_items": {
+      "required_frames": 8,
+      "window_size": 10
+    }
+  },
+  "cooldown_seconds": 30
+}

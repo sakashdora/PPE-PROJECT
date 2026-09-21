@@ -43,21 +43,23 @@
 
 ## 4. AI & ML Model Tier (`models/` and `ml/`)
 
-### Deployed Model:
-- **File**: `models/best.onnx` (18.1 MB, FP16 precision, exported from YOLO11s).
+### Deployed Model (Stage 2 — Active ✅ Verified):
+- **File**: `models/best_s2.onnx` (18.1 MB, FP16, full fine-tune of YOLO11s — **25/25 epochs, all layers unfrozen, cosine LR**).
+- **Predecessor**: `models/best.onnx` kept as Stage 1 fallback (18.1 MB, Stage 1 transfer learning, 15 epochs frozen backbone).
 - **Input Tensor**: `[1, 3, 640, 640]` (RGB, normalized $0.0 - 1.0$).
 - **Output Tensor**: `[1, 15, 8400]` ($4\text{ bbox coordinates} + 11\text{ class probabilities}$).
-- **Tested Performance**:
-  - Precision: **84.3%** | mAP50: **77.1%**
-  - Live validation detections on factory images:
-    - `person`: 84.4%
-    - `vest`: 82.2%
-    - `boots`: 78.5%
-    - `helmet`: 74.3%
-    - `gloves`: 73.1%
-  - CPU Inference Latency: **< 15ms per frame** via ONNX Runtime.
+- **✅ Stage 2 Confirmed Performance** (25/25 epochs, verified 2026-09-21):
+  - Precision: **86.5%** ↑ (Stage 1: 84.3%, **+2.2pp**)
+  - Recall: **73.5%**
+  - mAP@50: **79.4%** ↑ (Stage 1: 77.1%, **+2.3pp**)
+  - mAP@50-95: **54.8%**
+  - ONNX Runtime inference: Input `[1,3,640,640]` → Output `(1,15,8400)` ✅
+- **Stage 2 Training Config**: `lr0=0.001`, `lrf=0.0001`, `cos_lr=True`, `close_mosaic=10`, `freeze=0`, `batch=16`, `imgsz=640`, `epochs=25`.
+- **CPU Inference Latency**: **< 15ms per frame** via ONNX Runtime.
+- **Updated Thresholds** (tightened for Stage 2 confidence quality):
+  - `fire: 0.40` (was 0.35) | `smoke: 0.35` (was 0.30) — fewer false positives, voter still provides recall safety.
 
-### Unified 11-Class Schema:
+### Uniform 11-Class Schema:
 - `0: person` (Spatial anchor for anatomical body mapping)
 - `1: helmet` (Head compliance)
 - `2: head` (Bare head violation)
@@ -71,8 +73,8 @@
 - `10: cigarette` (**WARNING** restricted zone smoking trigger)
 
 ### Training Roadmap:
-- **Stage 1 (Completed)**: 15 epochs transfer learning with frozen backbone. Output: `best.onnx`.
-- **Stage 2 (Ready to run in Colab)**: 60 epochs fine-tuning with cosine annealing LR and full data augmentation. Full step-by-step instructions and cell code preserved in `train.md` and `ml/train.md`.
+- **Stage 1 (Completed ✅)**: 15 epochs transfer learning with frozen backbone. Output: `models/best.onnx` (kept as fallback).
+- **Stage 2 (Completed ✅)**: 25 epochs full fine-tuning, all layers unfrozen, cosine LR decay, close_mosaic=10. Output: `models/best_s2.onnx` — **currently active model**.
 
 ---
 
@@ -188,6 +190,7 @@ Passed 9/9 checks with exit code 0:
 | 2026-09-20 | `web/realtime/wsClient.ts` + `alerts.store.ts` + `layout.tsx` | BUG-4 FIX: Cursor was ISO date string; WS gateway expects integer seq. Now `wsClient` tracks `envelope.seq`, calls `onSeq()`, store uses `number | null` cursor. Gapless replay now correctly resumes from last seen event. |
 | 2026-09-20 | `web/features/alerts/AlertDrawer.tsx` + `web/lib/types.ts` | BUG-5 FIX: Supervisor Acknowledge/Resolve/FalseAlarm now call `PATCH /alerts/:id` CAS on NestJS. Added `version` field to `Alert` type. Error banner shows 409/401. Falls back to optimistic update when offline. |
 | 2026-09-20 | `audit/` | E2E re-verification: 9/9 PASSED. 4/4 proxy probes PASSED. Full alert chain proven. |
+| 2026-09-21 | `models/` | **Stage 2 ONNX deployed**: `best_s2.onnx` (25 epochs, full fine-tune, cosine LR, FP16). `edge/app/config.py` updated: `model_path → models/best_s2.onnx`, fire threshold `0.35→0.40`, smoke threshold `0.30→0.35`. Stage 1 `best.onnx` retained as fallback. |
 
 ---
 

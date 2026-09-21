@@ -1,0 +1,67 @@
+# Fill after downloading. VERIFY licence + class names in each dataset's own data.yaml / README.
+sources:
+  # 1) Ultralytics Construction-PPE (BEST for violations: has no_helmet/no_gloves/no_boots). AGPL-3.0.
+  #    wget https://github.com/ultralytics/assets/releases/download/v0.0.0/construction-ppe.zip
+  #    Its layout is images/{train,val,test} + labels/... -> point images_dir/labels_dir at each split, or merge splits first.
+  - name: ultra_ppe
+    path: raw/construction-ppe
+    format: yolo
+    images_dir: images
+    labels_dir: labels
+    names: [helmet, gloves, vest, boots, goggles, none, Person, no_helmet, no_goggle, no_gloves, no_boots]
+    map: {helmet: helmet, gloves: gloves, vest: vest, boots: boots, person: person,
+          no_helmet: head, no_gloves: no_gloves, no_boots: no_boots}
+
+  # 2) SH17 (8,099 manufacturing images, 17 classes; Kaggle link is in the GitHub README ahmadmughees/SH17dataset)
+  #    CAUTION: its "head" label very likely covers ALL heads (helmeted too) -> do NOT map it to our bare-head class.
+  - name: sh17
+    path: raw/sh17
+    format: yolo
+    images_dir: images
+    labels_dir: labels
+    names: [CHECK_ORDER_IN_SH17_README]      # copy the 17 names in the dataset's official order
+    map: {person: person, helmet: helmet, gloves: gloves, safety_vest: vest}
+
+  # 3) Kaggle hard-hat-detection (VOC): helmet / head / person.  kaggle datasets download -d andrewmvd/hard-hat-detection
+  - name: hardhat
+    path: raw/hardhat
+    format: voc
+    images_dir: images
+    labels_dir: annotations
+    map: {helmet: helmet, head: head, person: person}
+
+  # 4) D-Fire (21k+ images; YOLO). CLASS ORDER IS 0=smoke, 1=fire (verify in the copy you download!).
+  - name: dfire
+    path: raw/dfire
+    format: yolo
+    images_dir: images
+    labels_dir: labels
+    names: [smoke, fire]
+    map: {fire: fire, smoke: smoke}
+  # NOTE: D-Fire's ~9.8k images with no fire/smoke have EMPTY labels -> load_source skips them.
+  # Put them in a folder and list it under hard_negatives if you want them as background.
+
+  # 5) Smoking: Roboflow Universe search "cigarette" (e.g. cigarette-detection-iggcm, MIT). Verify label quality.
+  - name: cigarette
+    path: raw/cigarette
+    format: yolo
+    images_dir: images
+    labels_dir: labels
+    names: [Cigarette]
+    map: {cigarette: cigarette}
+
+# Background-only images used IN training (orange clothes, caps, steam, welding glare).
+hard_negatives:
+  - raw/neg/orange_yellow_clothing
+  - raw/neg/caps_hats
+  - raw/neg/steam_dust_welding
+  - raw/neg/dfire_no_fire
+
+# HELD OUT (never trained on): each image is a negative for the forbidden class -> any hit = false positive.
+corner_cases:
+  yellow_shirt: {path: raw/corner/yellow_shirt, forbidden: [fire]}
+  red_dress:    {path: raw/corner/red_dress,    forbidden: [fire]}
+  steam:        {path: raw/corner/steam,        forbidden: [smoke, fire]}
+  caps:         {path: raw/corner/caps,         forbidden: [helmet]}
+
+oversample: {fire: 2, smoke: 2, gloves: 2, boots: 2, no_gloves: 2, no_boots: 2, cigarette: 3}

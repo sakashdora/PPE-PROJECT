@@ -35,8 +35,8 @@ class ThresholdsConfig(BaseModel):
     boots: float = 0.60
     no_gloves: float = 0.60
     no_boots: float = 0.60
-    fire: float = 0.35          # Recall-first: catch early flicker
-    smoke: float = 0.30         # Recall-first: early vapor/smoke detection
+    fire: float = 0.40          # Stage 2: tightened — model is more confident on true fire
+    smoke: float = 0.35         # Stage 2: tightened — reduces false smoke alarms
     cigarette: float = 0.50
 
 class TemporalVoterConfig(BaseModel):
@@ -57,7 +57,7 @@ class EdgeConfig(BaseModel):
     cooldown_seconds: int = 60
     db_path: str = "outbox.db"
     mjpeg_port: int = 8080
-    model_path: str = "models/best.onnx"
+    model_path: str = "models/best_s2.onnx"
     cameras: List[CameraConfig] = Field(default_factory=lambda: [
         CameraConfig(
             id="cam-01",
