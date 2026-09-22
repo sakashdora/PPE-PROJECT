@@ -5,11 +5,8 @@ import { CameraStream } from "@/lib/types";
 import {
   Video,
   Plus,
-  Radio,
   CheckCircle,
-  AlertTriangle,
   Settings,
-  Trash2,
 } from "lucide-react";
 
 const INITIAL_CAMERAS: CameraStream[] = [
@@ -108,22 +105,22 @@ export default function CamerasAdminPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-industrial-800">
+    <div className="space-y-6 pb-12">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
-            <Video className="w-6 h-6 text-sky-400" />
+          <h1 className="text-2xl font-bold text-text-primary tracking-tight flex items-center gap-2.5 font-display">
+            <Video className="w-6 h-6 text-copper" />
             <span>Camera Stream Management (Admin)</span>
           </h1>
-          <p className="text-xs text-slate-400 font-mono mt-0.5">
-            Ingest real-time RTSP hardware feeds or benchmark demo video clips
+          <p className="text-xs text-text-secondary font-mono mt-0.5">
+            Ingest real-time RTSP hardware feeds or benchmark demo surveillance clips
           </p>
         </div>
 
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-mono font-bold flex items-center gap-2 shadow"
+          className="px-4 py-2 bg-copper hover:bg-copper-hover text-base rounded-sm text-xs font-mono font-bold flex items-center gap-2 transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span>Add New Camera</span>
@@ -135,52 +132,49 @@ export default function CamerasAdminPage() {
         {cameras.map((cam) => (
           <div
             key={cam.id}
-            className="p-4 bg-industrial-900 border border-industrial-800 rounded-xl space-y-3 font-mono text-xs"
+            className="p-4 bg-surface border border-border rounded-sm space-y-3 font-mono text-xs"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="font-bold text-white text-sm">{cam.name}</span>
+                <span className="w-2.5 h-2.5 rounded-none bg-jade animate-pulse" />
+                <span className="font-bold text-text-primary text-sm font-display">{cam.name}</span>
               </div>
-              <span className="text-3xs px-2 py-0.5 rounded bg-industrial-800 text-slate-300 border border-industrial-700">
+              <span className="text-3xs px-2 py-0.5 rounded-sm bg-base text-text-secondary border border-border">
                 {cam.id.toUpperCase()}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-2xs text-slate-400 bg-industrial-950 p-2.5 rounded border border-industrial-800">
+            <div className="grid grid-cols-2 gap-2 text-2xs text-text-secondary bg-base p-2.5 rounded-sm border border-border">
               <div>
-                <span className="text-slate-500">ASSIGNED SECTOR:</span>
-                <div className="font-bold text-slate-200 mt-0.5">{cam.sector}</div>
+                <span className="text-text-secondary">ASSIGNED SECTOR:</span>
+                <div className="font-bold text-text-primary mt-0.5">{cam.sector}</div>
               </div>
               <div>
-                <span className="text-slate-500">SOURCE TYPE:</span>
-                <div className="font-bold text-sky-400 mt-0.5">{cam.sourceType.toUpperCase()}</div>
+                <span className="text-text-secondary">SOURCE TYPE:</span>
+                <div className="font-bold text-copper mt-0.5">{cam.sourceType.toUpperCase()}</div>
               </div>
               <div>
-                <span className="text-slate-500">MEASURED FPS:</span>
-                <div className="font-bold text-emerald-400 mt-0.5">{cam.fps.toFixed(1)} FPS</div>
+                <span className="text-text-secondary">MEASURED FPS:</span>
+                <div className="font-bold text-jade mt-0.5">{cam.fps.toFixed(1)} FPS</div>
               </div>
               <div>
-                <span className="text-slate-500">EDGE LATENCY:</span>
-                <div className="font-bold text-slate-200 mt-0.5">{cam.latencyMs} ms</div>
+                <span className="text-text-secondary">EDGE LATENCY:</span>
+                <div className="font-bold text-text-primary mt-0.5">{cam.latencyMs} ms</div>
               </div>
             </div>
 
-            <div className="text-2xs text-slate-400 truncate">
-              <span className="text-slate-500">URI: </span>
-              <span>{cam.sourceUrl}</span>
+            <div className="text-2xs text-text-secondary truncate">
+              <span className="text-text-secondary">URI: </span>
+              <span className="text-text-primary">{cam.sourceUrl}</span>
             </div>
 
-            <div className="pt-2 border-t border-industrial-800 flex justify-between items-center text-2xs">
-              <span className="text-emerald-400 flex items-center gap-1">
+            <div className="pt-2 border-t border-border flex justify-between items-center text-2xs">
+              <span className="text-jade flex items-center gap-1">
                 <CheckCircle className="w-3.5 h-3.5" /> Auto-Reconnect Armed
               </span>
-              <a
-                href={`/admin/zones/${cam.id}`}
-                className="px-2.5 py-1 bg-industrial-800 hover:bg-industrial-700 text-slate-200 rounded flex items-center gap-1 border border-industrial-700 transition-colors"
-              >
-                <Settings className="w-3 h-3" /> Edit SVG Zones
-              </a>
+              <span className="px-2.5 py-1 bg-elevated text-text-secondary rounded-sm flex items-center gap-1 border border-border">
+                <Settings className="w-3 h-3 text-copper" /> Active ONNX Channel
+              </span>
             </div>
           </div>
         ))}
@@ -188,28 +182,28 @@ export default function CamerasAdminPage() {
 
       {/* Add Camera Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-industrial-950 border border-industrial-700 rounded-xl p-6 w-full max-w-md font-mono">
-            <h3 className="text-lg font-bold text-white mb-4">Add Camera Feed</h3>
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
+          <div className="bg-elevated border border-border rounded-sm p-6 w-full max-w-md font-mono">
+            <h3 className="text-base font-bold font-display text-text-primary mb-4">Add Camera Feed</h3>
             <form onSubmit={handleAddCamera} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-400 mb-1">Camera Label:</label>
+                <label className="block text-text-secondary mb-1">Camera Label:</label>
                 <input
                   type="text"
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Overhead Loading Gate 3"
-                  className="w-full px-3 py-2 bg-industrial-900 border border-industrial-700 rounded text-white focus:outline-none focus:border-sky-500"
+                  className="w-full px-3 py-2 bg-base border border-border rounded-sm text-text-primary focus:outline-none focus:border-copper"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Sector:</label>
+                <label className="block text-text-secondary mb-1">Sector:</label>
                 <select
                   value={newSector}
                   onChange={(e) => setNewSector(e.target.value)}
-                  className="w-full px-3 py-2 bg-industrial-900 border border-industrial-700 rounded text-white focus:outline-none focus:border-sky-500"
+                  className="w-full px-3 py-2 bg-base border border-border rounded-sm text-text-primary focus:outline-none focus:border-copper"
                 >
                   <option value="Sector 1">Sector 1: Loading Bay</option>
                   <option value="Sector 2">Sector 2: Chemical Storage</option>
@@ -219,13 +213,13 @@ export default function CamerasAdminPage() {
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">RTSP Stream URL or Video File Path:</label>
+                <label className="block text-text-secondary mb-1">RTSP Stream URL or Video File Path:</label>
                 <input
                   type="text"
                   required
                   value={newUrl}
                   onChange={(e) => setNewUrl(e.target.value)}
-                  className="w-full px-3 py-2 bg-industrial-900 border border-industrial-700 rounded text-white focus:outline-none focus:border-sky-500"
+                  className="w-full px-3 py-2 bg-base border border-border rounded-sm text-text-primary focus:outline-none focus:border-copper"
                 />
               </div>
 
@@ -233,13 +227,13 @@ export default function CamerasAdminPage() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-text-secondary hover:text-text-primary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded"
+                  className="px-4 py-2 bg-copper hover:bg-copper-hover text-base font-bold rounded-sm"
                 >
                   Save Camera
                 </button>

@@ -19,11 +19,11 @@ export const SeverityBadge: React.FC<SeverityBadgeProps> = ({
   const renderIcon = () => {
     switch (severity) {
       case "CRITICAL":
-        return <Flame className="w-3 h-3 text-yellow-300 animate-pulse" />;
+        return <Flame className="w-2.5 h-2.5 text-text-primary" />;
       case "WARNING":
-        return <CigaretteOff className="w-3 h-3 text-black" />;
+        return <CigaretteOff className="w-2.5 h-2.5 text-base" />;
       case "COMPLIANCE":
-        return <HardHat className="w-3 h-3 text-slate-200" />;
+        return <HardHat className="w-2.5 h-2.5 text-base" />;
       default:
         return null;
     }
@@ -31,9 +31,13 @@ export const SeverityBadge: React.FC<SeverityBadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-3xs font-mono font-bold uppercase tracking-wider shadow-sm ${
-        token.bgClass
-      } ${token.textClass} ${className}`}
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-bold uppercase tracking-wider ${
+        severity === "CRITICAL"
+          ? "bg-critical text-text-primary border border-critical"
+          : severity === "WARNING"
+          ? "bg-warning text-base font-semibold border border-warning"
+          : "bg-safe text-text-primary border border-safe"
+      } ${className}`}
     >
       {showIcon && renderIcon()}
       <span>{token.label}</span>

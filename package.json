@@ -1,0 +1,12 @@
+{
+  "name": "argus-ai",
+  "version": "1.0.0",
+  "description": "ARGUS AI PPE Detection Monorepo",
+  "private": true,
+  "scripts": {
+    "dev:web": "npm run dev --prefix web",
+    "dev:server": "npm run start:dev --prefix server",
+    "dev": "npx concurrently \"npm run dev:server\" \"npm run dev:web\"",
+    "install:all": "npm install --prefix web && npm install --prefix server"
+  }
+}

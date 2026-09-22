@@ -1,15 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #060b16;
-  --foreground: #f1f5f9;
-  --nav-height: 52px;
-  --banner-height: 36px;
-  --footer-height: 30px;
+  --background: #16140F;
+  --foreground: #F3EFE6;
+  --status-strip-height: 36px;
+  --bottom-dock-height: 52px;
 }
 
 * {
@@ -18,105 +17,130 @@
 
 html, body {
   height: 100%;
-  overflow: hidden;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* === Custom Industrial Scrollbar === */
+/* === Heavy Industry Forge Scrollbar === */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #070c17;
+  background: #16140F;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e2d47;
-  border-radius: 3px;
+  background: #2C2620;
+  border-radius: 2px;
+  border: 1px solid #3A332A;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2d4268;
+  background: #3A332A;
 }
 
-/* === Scanline / CRT Grid Effect for Video Tiles === */
-.crt-grid {
-  background-size: 24px 24px;
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+/* === HUD Corner Brackets (Signal Copper) === */
+.hud-bracket {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 10;
+}
+.hud-bracket.top-left {
+  top: 4px;
+  left: 4px;
+  border-top: 1.5px solid #C6752B;
+  border-left: 1.5px solid #C6752B;
+}
+.hud-bracket.top-right {
+  top: 4px;
+  right: 4px;
+  border-top: 1.5px solid #C6752B;
+  border-right: 1.5px solid #C6752B;
+}
+.hud-bracket.bottom-left {
+  bottom: 4px;
+  left: 4px;
+  border-bottom: 1.5px solid #C6752B;
+  border-left: 1.5px solid #C6752B;
+}
+.hud-bracket.bottom-right {
+  bottom: 4px;
+  right: 4px;
+  border-bottom: 1.5px solid #C6752B;
+  border-right: 1.5px solid #C6752B;
 }
 
-/* === Radar sweep helper === */
-.radar-line {
-  background: linear-gradient(90deg, rgba(16, 185, 129, 0) 0%, rgba(16, 185, 129, 0.4) 50%, rgba(16, 185, 129, 0.8) 100%);
+/* === Forge Solid Panels & Surfaces (NO Page-wide blur) === */
+.forge-surface {
+  background: #211D17;
+  border: 1px solid #3A332A;
 }
 
-/* === Utility: text size helpers (below xs) === */
-.text-3xs { font-size: 0.6rem; line-height: 0.85rem; }
-.text-2xs { font-size: 0.68rem; line-height: 0.95rem; }
-
-/* === Fade In === */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+.forge-elevated {
+  background: #2C2620;
+  border: 1px solid #3A332A;
 }
-.animate-fadeIn { animation: fadeIn 0.18s ease-out forwards; }
 
-/* === Slide In Right (for drawers) === */
-@keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(0); }
+/* Sole Sanctioned Blur in the App: The Floating Bottom Dock */
+.forge-dock {
+  background: rgba(44, 38, 32, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid #3A332A;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
 }
-.animate-slideInRight { animation: slideInRight 0.22s ease-out forwards; }
 
-/* === Active camera border pulse === */
-@keyframes borderFlash {
-  0%, 100% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 18px rgba(239,68,68,0.5); }
-  50%       { border-color: rgba(239, 68, 68, 0.25); box-shadow: 0 0 4px rgba(239,68,68,0.1); }
+/* Hard, high-contrast aviation alarm pulse for CRITICAL alerts */
+@keyframes criticalHardPulse {
+  0%, 100% {
+    background-color: rgba(193, 39, 45, 0.22);
+    border-color: #C1272D;
+    color: #F3EFE6;
+  }
+  50% {
+    background-color: transparent;
+    border-color: rgba(193, 39, 45, 0.4);
+    color: #A69C8C;
+  }
 }
-.animate-border-alert { animation: borderFlash 1s ease-in-out infinite; }
-
-/* === Siren glow for critical banner === */
-@keyframes sirenGlow {
-  0%, 100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.3); }
-  50%       { box-shadow: 0 0 24px rgba(239, 68, 68, 0.7), 0 0 4px rgba(239, 68, 68, 0.4) inset; }
+.animate-critical-pulse {
+  animation: criticalHardPulse 0.9s steps(2, start) infinite;
 }
-.animate-siren-glow { animation: sirenGlow 1.2s ease-in-out infinite; }
 
-/* === Ticker scroll for critical banner text === */
+/* Radar Sweep */
+@keyframes radarSweep {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.animate-radar-sweep {
+  animation: radarSweep 4s linear infinite;
+}
+
+/* Data Ticker */
 @keyframes tickerScroll {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
 }
-.animate-ticker { animation: tickerScroll 20s linear infinite; }
-
-/* === Nav active underline glow === */
-.nav-active-glow {
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+.animate-ticker {
+  animation: tickerScroll 24s linear infinite;
 }
 
-/* === Video tile overlay gradient === */
-.tile-header-gradient {
-  background: linear-gradient(180deg, rgba(3,9,18,0.92) 0%, rgba(3,9,18,0.5) 60%, transparent 100%);
+/* Typography Utility Classes */
+.font-display {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 700;
 }
-.tile-footer-gradient {
-  background: linear-gradient(0deg, rgba(3,9,18,0.95) 0%, rgba(3,9,18,0.6) 70%, transparent 100%);
+.font-sans-body {
+  font-family: 'Hanken Grotesk', sans-serif;
 }
-
-/* === Status dot pulse === */
-@keyframes statusPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
+.font-mono-data {
+  font-family: 'JetBrains Mono', monospace;
 }
-.status-dot-live { animation: statusPulse 2s ease-in-out infinite; }
-
-/* === Monospace font helper === */
-.font-mono-jet { font-family: 'JetBrains Mono', 'Courier New', monospace; }

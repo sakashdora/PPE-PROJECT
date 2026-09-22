@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 import { useAlertsStore } from "@/features/alerts/alerts.store";
 import { selectQueue } from "@/features/alerts/selectors";
 import { DICTIONARY, SupportedLocale } from "@/lib/i18n";
-import { AlarmController } from "./AlarmController";
 import { MockDemoEngine } from "@/realtime/mockWsServer";
+import { ArgusEyeLogo } from "./ArgusEyeLogo";
 import {
-  ShieldCheck,
   Video,
   Bell,
   FileText,
@@ -19,14 +19,13 @@ import {
   ChevronDown,
   Globe,
   Play,
-  RotateCcw,
-  Wifi,
-  WifiOff,
+  Bot,
   User,
   X,
+  Sparkles,
 } from "lucide-react";
 
-export const Navbar: React.FC = () => {
+export const Navbar: React.FC<{ onOpenCopilot?: () => void }> = ({ onOpenCopilot }) => {
   const pathname = usePathname();
   const byId = useAlertsStore((s) => s.byId);
   const conn = useAlertsStore((s) => s.conn);
@@ -43,7 +42,6 @@ export const Navbar: React.FC = () => {
   ).length;
 
   const [timeStr, setTimeStr] = useState<string>("");
-  const [dateStr, setDateStr] = useState<string>("");
   const [demoMenuOpen, setDemoMenuOpen] = useState<boolean>(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState<boolean>(false);
   const [langMenuOpen, setLangMenuOpen] = useState<boolean>(false);
@@ -62,16 +60,13 @@ export const Navbar: React.FC = () => {
           second: "2-digit",
         })
       );
-      setDateStr(
-        now.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
-      );
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Close dropdowns on outside click
+  // Close dropdowns on click outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (adminRef.current && !adminRef.current.contains(e.target as Node)) setAdminMenuOpen(false);
@@ -93,9 +88,9 @@ export const Navbar: React.FC = () => {
       badge: openCount > 0 ? openCount : undefined,
       critical: criticalCount > 0,
     },
-    { href: "/history", label: "Audit History", icon: FileText },
     { href: "/reports", label: "Safety Analytics", icon: BarChart3 },
     { href: "/health", label: "Node Health", icon: Activity },
+    { href: "/history", label: "Audit Logs", icon: FileText },
   ];
 
   const handleRunDemoStep = (index: number) => {
@@ -104,235 +99,230 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="bg-nav-bg border-b border-nav-border shadow-lg shadow-black/40">
-      {/* Demo Notification Toast */}
+    <header className="sticky top-0 z-40 bg-surface border-b border-depth">
+      {/* Demo Notification Banner - Updated to fit Mission Control Strict Colors */}
       {demoNotice && (
-        <div className="bg-emerald-900/80 border-b border-emerald-700/50 px-4 py-1.5 text-xs text-emerald-200 flex items-center justify-between font-mono animate-fade-in">
+        <div className="bg-safe-dark border-b border-safe px-4 py-1.5 text-xs text-text-primary flex items-center justify-between font-mono-data">
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-emerald-300 font-bold">[DEMO]</span>
+            <span className="w-2 h-2 rounded-none bg-safe" />
+            <span className="font-bold text-safe-light">[DEMO TRIGGER]</span>
             <span>{demoNotice}</span>
           </div>
           <button
             type="button"
             onClick={() => setDemoNotice(null)}
-            className="text-emerald-400 hover:text-white p-0.5 rounded transition-colors"
+            className="text-safe hover:text-white p-0.5 rounded-sm transition-colors"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
-      <div className="flex items-center h-[52px] px-4 gap-3">
-        {/* ── Logo ── */}
-        <Link href="/wall" className="flex items-center gap-2.5 shrink-0 mr-2 group">
-          <div className="p-1.5 bg-blue-600/20 border border-blue-500/40 rounded-lg group-hover:border-blue-400/70 transition-colors">
-            <ShieldCheck className="w-5 h-5 text-blue-400" />
-          </div>
-          <div className="leading-tight">
-            <div className="text-[11px] font-black tracking-[0.12em] uppercase text-white font-mono">
-              Industrial Safety AI
-            </div>
-            <div className="text-[9px] font-medium tracking-[0.06em] text-slate-500 uppercase font-mono">
-              Supervisor Dashboard
-            </div>
-          </div>
-        </Link>
+      <div className="flex items-center justify-between h-[56px] px-4 sm:px-6 gap-3">
+        {/* Left: Brand Identity */}
+        <div className="flex items-center gap-4">
+          <Link href="/" className="group flex items-center gap-2">
+            {/* Logo could be updated, assuming it will inherit font-display from its internal implementation */}
+            <ArgusEyeLogo size={32} showText={true} subtitle="Mission Control" />
+          </Link>
 
-        {/* ── Vertical separator ── */}
-        <div className="w-px h-6 bg-nav-border mx-1 shrink-0" />
+          <div className="hidden xl:block w-px h-6 bg-depth mx-1" />
 
-        {/* ── Nav Links ── */}
-        <nav aria-label="Main Navigation" className="hidden lg:flex items-center gap-0.5 flex-1">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href || (link.href !== "/wall" && pathname.startsWith(link.href));
-            const Icon = link.icon;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-3 py-1.5 rounded-md text-[11px] font-semibold flex items-center gap-1.5 transition-all relative tracking-wide ${
-                  isActive
-                    ? "bg-nav-active text-white nav-active-glow border border-blue-600/40"
-                    : "text-slate-400 hover:text-slate-100 hover:bg-nav-hover"
+          {/* Navigation Links with Tactical Underline */}
+          <nav aria-label="Main Navigation" className="hidden lg:flex items-center gap-1 relative h-full">
+            {navLinks.map((link) => {
+              const isActive =
+                pathname === link.href || (link.href !== "/wall" && pathname.startsWith(link.href));
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`relative px-3.5 py-1.5 rounded-sm text-xs font-display font-medium flex items-center gap-2 transition-colors h-full ${
+                    isActive
+                      ? "text-text-primary bg-elevated/50"
+                      : "text-text-secondary hover:text-text-primary hover:bg-elevated/30"
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? "text-nominal" : "text-text-secondary"}`} />
+                  <span>{link.label}</span>
+
+                  {link.badge !== undefined && (
+                    <span
+                      className={`text-[10px] font-mono-data font-bold px-1.5 py-0.5 rounded-sm leading-none ${
+                        link.critical
+                          ? "bg-critical-dark text-text-primary border border-critical"
+                          : "bg-depth text-text-secondary"
+                      }`}
+                    >
+                      {link.badge}
+                    </span>
+                  )}
+
+                  {/* Tactical Active Underline (No Spring, Linear) */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-active-underline"
+                      className="absolute bottom-[-10px] left-0 right-0 h-[2px] bg-nominal"
+                      transition={{ duration: 0.1, ease: "linear" }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
+
+            {/* Admin Menu */}
+            <div className="relative h-full flex items-center" ref={adminRef}>
+              <button
+                type="button"
+                onClick={() => setAdminMenuOpen(!adminMenuOpen)}
+                className={`px-3 py-1.5 rounded-sm text-xs font-display font-medium flex items-center gap-1.5 transition-colors ${
+                  pathname.startsWith("/admin")
+                    ? "text-text-primary bg-elevated/50"
+                    : "text-text-secondary hover:text-text-primary hover:bg-elevated/30"
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{link.label}</span>
-                {link.badge !== undefined && (
-                  <span
-                    className={`ml-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
-                      link.critical
-                        ? "bg-red-500 text-white animate-pulse"
-                        : "bg-slate-600 text-slate-200"
-                    }`}
-                  >
-                    {link.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Admin</span>
+                <ChevronDown className={`w-3 h-3 opacity-60 transition-transform ${adminMenuOpen ? "rotate-180" : ""}`} />
+              </button>
 
-          {/* Admin Dropdown */}
-          <div className="relative" ref={adminRef}>
-            <button
-              type="button"
-              onClick={() => setAdminMenuOpen(!adminMenuOpen)}
-              className={`px-3 py-1.5 rounded-md text-[11px] font-semibold flex items-center gap-1.5 transition-all tracking-wide ${
-                pathname.startsWith("/admin")
-                  ? "bg-nav-active text-white border border-blue-600/40"
-                  : "text-slate-400 hover:text-slate-100 hover:bg-nav-hover"
-              }`}
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Admin</span>
-              <ChevronDown className={`w-3 h-3 opacity-60 transition-transform ${adminMenuOpen ? "rotate-180" : ""}`} />
-            </button>
-            {adminMenuOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-52 bg-nav-bg border border-nav-border rounded-lg shadow-2xl py-1 z-50 animate-fade-in">
-                <div className="px-3 py-1.5 text-3xs font-mono uppercase tracking-widest text-slate-600 border-b border-nav-border mb-1">
-                  Configuration
+              {adminMenuOpen && (
+                <div className="absolute left-0 top-full mt-2 w-52 bg-elevated border border-depth rounded-sm py-1.5 z-50 shadow-md">
+                  <div className="px-3.5 py-1 text-3xs font-mono-data uppercase tracking-widest text-telemetry border-b border-depth mb-1">
+                    System Configuration
+                  </div>
+                  {[
+                    { href: "/admin/cameras", label: "Optical Sensors" },
+                    { href: "/admin/zones/cam-01", label: "Polygon Zones" },
+                    { href: "/admin/thresholds", label: "Voter Tuning" },
+                  ].map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setAdminMenuOpen(false)}
+                      className="flex items-center px-3.5 py-2 text-xs font-display text-text-primary hover:bg-nominal-bg hover:text-nominal transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
                 </div>
-                {[
-                  { href: "/admin/cameras", label: "Camera Config" },
-                  { href: "/admin/zones/cam-01", label: "Zone Editor" },
-                  { href: "/admin/thresholds", label: "Threshold Tuning" },
-                ].map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setAdminMenuOpen(false)}
-                    className="flex items-center px-3 py-2 text-[11px] text-slate-300 hover:bg-nav-hover hover:text-white transition-colors"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </nav>
+        </div>
 
-          {/* Demo Scenarios */}
-          <div className="relative ml-1" ref={demoRef}>
+        {/* Right: Actions, Copilot & Status Controls */}
+        <div className="flex items-center gap-2.5">
+          {/* Ask ARGUS Safety Copilot CTA - Redesigned to be Tactical */}
+          <Link
+            href="/copilot"
+            className="group relative px-3 py-1.5 rounded-sm text-xs font-mono-data font-medium flex items-center gap-2 bg-canvas border border-depth text-text-primary hover:border-nominal transition-colors"
+          >
+            <Bot className="w-4 h-4 text-nominal" />
+            <span className="tracking-wide">Ask ARGUS</span>
+          </Link>
+
+          {/* Demo Walkthrough Scenarios */}
+          <div className="relative" ref={demoRef}>
             <button
               type="button"
               onClick={() => setDemoMenuOpen(!demoMenuOpen)}
-              className="px-3 py-1.5 bg-emerald-900/30 hover:bg-emerald-800/40 text-emerald-300 rounded-md text-[11px] font-semibold flex items-center gap-1.5 border border-emerald-700/30 hover:border-emerald-600/50 transition-all tracking-wide"
+              className="px-3 py-1.5 bg-canvas hover:bg-elevated text-text-primary rounded-sm text-xs font-mono-data font-medium flex items-center gap-1.5 border border-depth transition-colors"
             >
-              <Play className="w-3 h-3" />
-              <span className="hidden xl:inline">Demo Scenarios</span>
+              <Play className="w-3 h-3 text-safe" />
+              <span className="hidden sm:inline">Scenarios</span>
               <ChevronDown className={`w-3 h-3 opacity-60 transition-transform ${demoMenuOpen ? "rotate-180" : ""}`} />
             </button>
+
             {demoMenuOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-80 bg-nav-bg border border-nav-border rounded-lg shadow-2xl py-1.5 z-50 animate-fade-in">
-                <div className="px-3 py-1.5 text-3xs font-mono uppercase tracking-widest text-slate-600 border-b border-nav-border mb-1">
-                  Live Demo Walkthrough
+              <div className="absolute right-0 top-full mt-2 w-80 bg-elevated border border-depth rounded-sm p-2 z-50 shadow-md">
+                <div className="px-3 py-1 text-3xs font-mono-data uppercase tracking-widest text-telemetry border-b border-depth mb-1.5">
+                  Simulation Profiles
                 </div>
                 {[
-                  { index: 0, label: "Missing Helmet (Sector 4)", color: "text-amber-300", desc: "Triggers compliance alert in queue" },
-                  { index: 1, label: "Negative Corner Case", color: "text-emerald-400", desc: "Yellow shirt & cap stay silent (zero false alarm)" },
-                  { index: 2, label: "Fire Hazard Breakout", color: "text-red-400", desc: "CRITICAL priority, siren audio, red border" },
-                  { index: 3, label: "Smoking in Restricted Zone", color: "text-amber-400", desc: "Restricted polygon zone trigger" },
+                  { index: 0, label: "Missing Helmet (Sector 4)", color: "text-compliance", badge: "COMPLIANCE", desc: "Temporal voting (8/10 frames)" },
+                  { index: 1, label: "Yellow Shirt / Cap", color: "text-safe", badge: "0.0% FPR", desc: "Hard-negatives suppression" },
+                  { index: 2, label: "Fire Hazard Breakout", color: "text-critical", badge: "CRITICAL", desc: "Dual-rate (2/5 frames) + Alarm" },
+                  { index: 3, label: "Smoking in Restricted Zone", color: "text-warning", badge: "ZONE VIOLATION", desc: "Polygon restriction breach" },
                 ].map((step) => (
                   <button
                     key={step.index}
                     type="button"
                     onClick={() => handleRunDemoStep(step.index)}
-                    className="w-full text-left px-3 py-2 hover:bg-nav-hover text-slate-200 flex flex-col transition-colors"
+                    className="w-full text-left p-2 rounded-sm hover:bg-canvas border border-transparent hover:border-depth transition-colors group flex flex-col gap-1 mb-1"
                   >
-                    <span className={`font-bold text-[11px] ${step.color}`}>{step.index + 1}. {step.label}</span>
-                    <span className="text-3xs text-slate-500 font-mono mt-0.5">{step.desc}</span>
+                    <div className="flex items-center justify-between text-xs font-mono-data font-medium">
+                      <span className={`${step.color}`}>{step.label}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-depth text-text-primary border border-depth">
+                        {step.badge}
+                      </span>
+                    </div>
+                    <div className="text-3xs text-telemetry font-mono-data">{step.desc}</div>
                   </button>
                 ))}
-                <div className="my-1 border-t border-nav-border" />
-                {[
-                  { action: () => { MockDemoEngine.simulateDisconnect(); setDemoMenuOpen(false); }, icon: WifiOff, label: "Simulate Disconnect", color: "text-amber-300" },
-                  { action: () => { MockDemoEngine.simulateReconnect(); setDemoMenuOpen(false); }, icon: Wifi, label: "Simulate Reconnect", color: "text-emerald-400" },
-                  { action: () => { MockDemoEngine.reset(); setDemoMenuOpen(false); }, icon: RotateCcw, label: "Reset to Baseline", color: "text-slate-400" },
-                ].map((item, i) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={item.action}
-                      className={`w-full text-left px-3 py-1.5 hover:bg-nav-hover flex items-center gap-2 text-[11px] font-mono ${item.color} transition-colors`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
               </div>
             )}
           </div>
-        </nav>
 
-        {/* ── Right Controls ── */}
-        <div className="flex items-center gap-2 ml-auto shrink-0">
-          {/* Alarm Controller (hidden label) */}
-          <AlarmController />
-
-          {/* Online Status Pill */}
-          <div
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono tracking-wide border ${
-              isLive
-                ? "bg-emerald-900/30 border-emerald-700/50 text-emerald-300"
-                : "bg-red-900/30 border-red-700/50 text-red-300"
-            }`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isLive ? "bg-emerald-400 animate-pulse" : "bg-red-400"
-              }`}
-            />
-            <span>{isLive ? "ONLINE" : conn === "reconnecting" ? "RECONNECTING" : "OFFLINE"}</span>
-            {isLive && (
-              <span className="text-emerald-500 font-normal opacity-70">· On-Prem (LAN)</span>
-            )}
+          {/* Telemetry Status Pill - Density updated */}
+          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-sm bg-canvas border border-depth font-mono-data text-2xs text-text-primary">
+            <span className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-none ${isLive ? "bg-safe" : "bg-critical"}`} />
+              <span className="font-medium text-text-primary">{isLive ? "ONLINE" : "RECONNECTING"}</span>
+            </span>
+            <span className="text-depth">|</span>
+            <span className="text-nominal font-medium">14ms</span>
+            <span className="text-depth">|</span>
+            <span className="text-telemetry">{timeStr}</span>
           </div>
 
-          {/* Language Switcher */}
+          {/* Language Selector */}
           <div className="relative" ref={langRef}>
             <button
               type="button"
               onClick={() => setLangMenuOpen(!langMenuOpen)}
-              className="flex items-center gap-1 px-2 py-1.5 bg-industrial-800/60 hover:bg-industrial-750 border border-industrial-700/60 rounded-md text-[11px] font-mono text-slate-300 hover:text-white transition-all"
+              className="p-1.5 rounded-sm border border-transparent hover:border-depth hover:bg-canvas text-text-secondary hover:text-text-primary transition-colors"
+              title="Change Language"
             >
-              <Globe className="w-3 h-3 text-slate-400" />
-              <span className="uppercase font-bold">{locale}</span>
-              <ChevronDown className="w-3 h-3 opacity-50" />
+              <Globe className="w-4 h-4" />
             </button>
             {langMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-28 bg-nav-bg border border-nav-border rounded-lg shadow-2xl py-1 z-50 animate-fade-in">
-                {(["en", "hi", "or"] as SupportedLocale[]).map((loc) => (
+              <div className="absolute right-0 top-full mt-2 w-32 bg-elevated border border-depth rounded-sm py-1 z-50 shadow-md">
+                {[
+                  { code: "en", label: "English" },
+                  { code: "hi", label: "हिंदी (Hindi)" },
+                  { code: "or", label: "ଓଡ଼ିଆ (Odia)" },
+                ].map((item) => (
                   <button
-                    key={loc}
+                    key={item.code}
                     type="button"
-                    onClick={() => { setLocale(loc); setLangMenuOpen(false); }}
-                    className={`w-full text-left px-3 py-1.5 text-[11px] font-mono uppercase font-bold transition-colors ${
-                      locale === loc
-                        ? "text-blue-400 bg-blue-900/20"
-                        : "text-slate-400 hover:text-white hover:bg-nav-hover"
+                    onClick={() => {
+                      setLocale(item.code as SupportedLocale);
+                      setLangMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-mono-data transition-colors ${
+                      locale === item.code ? "text-nominal font-medium bg-nominal-bg" : "text-text-primary hover:bg-canvas"
                     }`}
                   >
-                    {loc === "en" ? "English" : loc === "hi" ? "हिंदी" : "ଓଡ଼ିଆ"}
+                    {item.label}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* SHIFT + Time */}
-          <div className="hidden sm:flex flex-col items-end font-mono">
-            <div className="text-[11px] font-bold text-slate-200 leading-none">{timeStr}</div>
-            <div className="text-3xs text-slate-500 leading-none mt-0.5">SHIFT A · {dateStr}</div>
-          </div>
-
-          {/* User Avatar */}
-          <div className="w-7 h-7 rounded-full bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-blue-300 hover:bg-blue-600/50 transition-colors cursor-pointer">
-            <User className="w-3.5 h-3.5" />
-          </div>
+          {/* User Persona Link */}
+          <Link
+            href="/login"
+            className="flex items-center gap-1.5 p-1 sm:px-2 rounded-sm text-text-primary hover:bg-canvas border border-transparent hover:border-depth transition-colors text-xs font-mono-data"
+            title="Shift Supervisor"
+          >
+            <div className="w-5 h-5 rounded-sm bg-depth flex items-center justify-center text-text-primary font-medium text-[10px]">
+              S
+            </div>
+            <span className="hidden md:inline">Supervisor</span>
+          </Link>
         </div>
       </div>
     </header>

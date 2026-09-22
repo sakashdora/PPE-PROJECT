@@ -4,13 +4,12 @@ import React, { useState } from "react";
 import { useAlertsStore } from "@/features/alerts/alerts.store";
 import { selectQueue } from "@/features/alerts/selectors";
 import { StreamTile } from "@/features/wall/StreamTile";
+import { VideoUploadDetection } from "@/features/upload/VideoUploadDetection";
 import { AlertDrawer } from "@/features/alerts/AlertDrawer";
 import { CameraStream, Alert } from "@/lib/types";
 import {
   RadioTower,
-  ChevronDown,
   LayoutGrid,
-  List,
   Bell,
   ChevronRight,
   Flame,
@@ -18,6 +17,8 @@ import {
   Info,
   CheckCircle2,
   Camera,
+  Film,
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -84,10 +85,11 @@ const DEMO_CAMERAS: CameraStream[] = [
   },
 ];
 
+type DetectionMode = "live" | "upload";
 type LayoutPreset = "2x2" | "3x3" | "4x4";
 type AlertFilter = "all" | "critical" | "warning" | "info";
 
-// ── Compact Alert Queue Card ──────────────────────────────────────────────────
+// ── Compact Alert Queue Card (Forge System) ──────────────────────────
 function AlertQueueCard({
   alert,
   onInspect,
@@ -97,7 +99,6 @@ function AlertQueueCard({
 }) {
   const isCritical = alert.severity === "CRITICAL";
   const isWarning = alert.severity === "WARNING";
-  const isInfo = alert.severity === "COMPLIANCE";
 
   const timeAgo = (() => {
     const diff = Math.floor((Date.now() - new Date(alert.ts).getTime()) / 1000);
@@ -114,131 +115,116 @@ function AlertQueueCard({
   });
 
   const alertTypeStr = alert.type as string;
-  const title = alertTypeStr === "fire" || alertTypeStr === "smoke"
-    ? "Fire / Smoke Detected"
-    : alertTypeStr === "missing_ppe"
-    ? `${alert.items.map((i: string) => i.replace("no_", "").replace(/_/g, " ")).join(" & ")} Not Detected`
-    : alertTypeStr === "smoking"
-    ? "Smoking in Restricted Zone"
-    : alertTypeStr.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+  const title =
+    alertTypeStr === "fire" || alertTypeStr === "smoke"
+      ? "Fire / Smoke Outbreak"
+      : alertTypeStr === "missing_ppe"
+      ? `${alert.items.map((i: string) => i.replace("no_", "").replace(/_/g, " ")).join(" & ")} Breach`
+      : alertTypeStr === "smoking"
+      ? "Restricted Smoking Ignition"
+      : alertTypeStr.replace(/_/g, " ").toUpperCase();
 
   const desc = isCritical
-    ? `High smoke density detected (confidence ${(alert.confidence * 100).toFixed(2)})`
+    ? `Thermal smoke density verified (confidence ${(alert.confidence * 100).toFixed(1)}%)`
     : isWarning
-    ? `Worker without ${alert.items.join(", ")} (confidence ${(alert.confidence * 100).toFixed(2)})`
-    : "System event recorded";
+    ? `Worker without ${alert.items.join(", ")} (confidence ${(alert.confidence * 100).toFixed(1)}%)`
+    : "System telemetry log";
 
-  const modelTag = alert.modelVersion || (isCritical ? "fire_v2" : "ppe_v2");
-  const typeTag = isCritical ? "Fire" : isWarning ? "PPE" : "System";
-
-  const severityBar = isCritical
-    ? "bg-red-500"
-    : isWarning
-    ? "bg-amber-500"
-    : "bg-sky-500";
-
-  const severityBadge = isCritical
-    ? "bg-red-900/50 text-red-300 border-red-700/50"
-    : isWarning
-    ? "bg-amber-900/50 text-amber-300 border-amber-700/50"
-    : "bg-sky-900/50 text-sky-300 border-sky-700/50";
-
-  const severityText = isCritical ? "CRITICAL" : isWarning ? "WARNING" : "INFO";
   const SevIcon = isCritical ? Flame : isWarning ? AlertTriangle : Info;
 
   return (
     <button
       type="button"
       onClick={() => onInspect(alert.id)}
-      className={`w-full text-left flex gap-0 rounded-lg overflow-hidden border transition-all hover:border-industrial-600 hover:bg-industrial-800/30 group ${
+      className={`w-full text-left flex gap-0 rounded-sm overflow-hidden border transition-colors hover:border-copper hover:bg-elevated group ${
         isCritical && alert.status === "open"
-          ? "border-red-700/60 bg-red-950/20 animate-border-alert"
-          : "border-industrial-750 bg-industrial-900/60"
+          ? "border-critical bg-critical/15 animate-critical-pulse"
+          : "border-border bg-surface"
       }`}
     >
-      {/* Severity color bar */}
-      <div className={`w-1 shrink-0 ${severityBar}`} />
+      {/* 3px Solid Severity Accent Bar */}
+      <div
+        className={`w-[3px] shrink-0 ${
+          isCritical ? "bg-critical" : isWarning ? "bg-warning" : "bg-safe"
+        }`}
+      />
 
-      {/* Content */}
-      <div className="flex-1 px-3 py-2.5 min-w-0">
-        {/* Row 1: Badge + time */}
-        <div className="flex items-center justify-between gap-2 mb-1.5">
+      {/* Card Content */}
+      <div className="flex-1 px-3 py-2 min-w-0">
+        <div className="flex items-center justify-between gap-2 mb-1">
           <div className="flex items-center gap-1.5">
-            <span className={`flex items-center gap-1 text-[9px] font-bold font-mono uppercase px-1.5 py-0.5 rounded border ${severityBadge}`}>
+            <span
+              className={`flex items-center gap-1 text-[9px] font-bold font-mono uppercase px-1.5 py-0.5 rounded-sm border ${
+                isCritical
+                  ? "bg-critical text-text-primary border-critical"
+                  : isWarning
+                  ? "bg-warning text-base border-warning font-semibold"
+                  : "bg-safe text-text-primary border-safe"
+              }`}
+            >
               <SevIcon className="w-2.5 h-2.5" />
-              {severityText}
+              {alert.severity}
             </span>
           </div>
-          <span className="text-[9px] font-mono text-slate-500 whitespace-nowrap">
+          <span className="text-[9px] font-mono text-text-secondary whitespace-nowrap">
             {timeFormatted} · {timeAgo}
           </span>
         </div>
 
-        {/* Row 2: Title */}
-        <div className="text-[12px] font-bold text-slate-100 leading-tight mb-1 truncate">
+        <div className="text-xs font-bold font-display text-text-primary leading-tight mb-1 truncate">
           {title}
         </div>
 
-        {/* Row 3: Camera + Sector */}
-        <div className="flex items-center gap-1 text-[9px] font-mono text-slate-400 mb-1.5">
-          <Camera className="w-2.5 h-2.5 text-slate-500" />
-          <span>{alert.cameraId.toUpperCase().replace("CAM-", "Camera ")}</span>
-          <span className="opacity-40">·</span>
+        <div className="flex items-center gap-1 text-[9px] font-mono text-text-secondary mb-1">
+          <Camera className="w-2.5 h-2.5 text-copper" />
+          <span>{alert.cameraId.toUpperCase().replace("CAM-", "CAM ")}</span>
+          <span className="text-border">·</span>
           <span>{alert.sector}</span>
         </div>
 
-        {/* Row 4: Description */}
-        <div className="text-[10px] text-slate-500 font-mono leading-tight mb-2 truncate">
+        <div className="text-[10px] text-text-secondary font-mono leading-tight truncate">
           {desc}
-        </div>
-
-        {/* Row 5: Tags */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-industrial-800 border border-industrial-700 text-slate-300">
-            {typeTag}
-          </span>
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-industrial-800 border border-industrial-700 text-slate-400">
-            Model: {modelTag}
-          </span>
         </div>
       </div>
 
-      {/* Chevron */}
-      <div className="flex items-center pr-2 text-slate-600 group-hover:text-slate-300 transition-colors">
+      <div className="flex items-center pr-2 text-text-secondary group-hover:text-copper transition-colors">
         <ChevronRight className="w-4 h-4" />
       </div>
     </button>
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Main Page ────────────────────────────────────────────────────────
 export default function LiveWallPage() {
   const byId = useAlertsStore((s) => s.byId);
   const selectedAlertId = useAlertsStore((s) => s.selectedAlertId);
   const setSelectedAlertId = useAlertsStore((s) => s.setSelectedAlertId);
 
+  // Dual Detection Mode State: Live Camera vs Upload Video
+  const [detectionMode, setDetectionMode] = useState<DetectionMode>("live");
   const [layoutPreset, setLayoutPreset] = useState<LayoutPreset>("2x2");
   const [focusedCamId, setFocusedCamId] = useState<string | null>(null);
   const [alertFilter, setAlertFilter] = useState<AlertFilter>("all");
-  const [sectorFilter] = useState<string>("all");
 
   const queue = selectQueue(byId);
-  const activeAlerts = queue.filter((a) => a.status === "open" || a.status === "acknowledged");
+  const activeAlerts = queue.filter(
+    (a) => a.status === "open" || a.status === "acknowledged"
+  );
   const selectedAlert = selectedAlertId ? byId[selectedAlertId] || null : null;
 
   const criticalAlerts = activeAlerts.filter((a) => a.severity === "CRITICAL");
   const warningAlerts = activeAlerts.filter((a) => a.severity === "WARNING");
-  const infoAlerts = activeAlerts.filter(
-    (a) => a.severity === "COMPLIANCE"
-  );
+  const infoAlerts = activeAlerts.filter((a) => a.severity === "COMPLIANCE");
 
   const filteredAlerts =
-    alertFilter === "critical" ? criticalAlerts
-    : alertFilter === "warning" ? warningAlerts
-    : alertFilter === "info" ? infoAlerts
-    : activeAlerts;
+    alertFilter === "critical"
+      ? criticalAlerts
+      : alertFilter === "warning"
+      ? warningAlerts
+      : alertFilter === "info"
+      ? infoAlerts
+      : activeAlerts;
 
-  // Sort cameras: CRITICAL pinned to top
   const sortedCameras = [...DEMO_CAMERAS].sort((a, b) => {
     const aCrit = Object.values(byId).some(
       (al) => al.cameraId === a.id && al.severity === "CRITICAL" && al.status === "open"
@@ -256,154 +242,154 @@ export default function LiveWallPage() {
     : sortedCameras;
 
   const gridColsClass =
-    layoutPreset === "4x4" ? "grid-cols-4"
-    : layoutPreset === "3x3" ? "grid-cols-3"
-    : "grid-cols-2";
+    layoutPreset === "4x4"
+      ? "grid-cols-4"
+      : layoutPreset === "3x3"
+      ? "grid-cols-3"
+      : "grid-cols-2";
 
-  // Auto-rows: each row gets equal share of available height
   const gridRowsClass =
-    layoutPreset === "4x4" ? "grid-rows-4"
-    : layoutPreset === "3x3" ? "grid-rows-3"
-    : "grid-rows-2";
+    layoutPreset === "4x4"
+      ? "grid-rows-4"
+      : layoutPreset === "3x3"
+      ? "grid-rows-3"
+      : "grid-rows-2";
 
-  const tabFilters: { key: AlertFilter; label: string; count: number; color: string }[] = [
-    { key: "all", label: "All", count: activeAlerts.length, color: "text-slate-300" },
-    { key: "critical", label: "Critical", count: criticalAlerts.length, color: "text-red-400" },
-    { key: "warning", label: "Warning", count: warningAlerts.length, color: "text-amber-400" },
-    { key: "info", label: "Info", count: infoAlerts.length, color: "text-sky-400" },
+  const tabFilters: { key: AlertFilter; label: string; count: number }[] = [
+    { key: "all", label: "ALL", count: activeAlerts.length },
+    { key: "critical", label: "CRITICAL", count: criticalAlerts.length },
+    { key: "warning", label: "WARNING", count: warningAlerts.length },
+    { key: "info", label: "COMPLIANCE", count: infoAlerts.length },
   ];
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden bg-base">
       {/* ═══════════════════════════════════════════════════════════════
-          LEFT: Live Wall Grid
+          LEFT: Detection Viewport (Live Grid OR Video Upload)
       ═══════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 flex flex-col overflow-hidden border-r border-industrial-800 min-w-0">
-        {/* Title Row */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-industrial-800 shrink-0 bg-industrial-900/50">
-          <div>
-            <h1 className="text-[15px] font-black text-white tracking-tight flex items-center gap-2">
-              <RadioTower className="w-4 h-4 text-emerald-400 animate-pulse" />
-              Live Wall — Multi-Stream Grid
+      <div className="flex-1 flex flex-col overflow-hidden border-r border-border min-w-0">
+        {/* Top Control Bar with Dual-Mode Segmented Control */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0 bg-surface">
+          {/* Brand/Mode Title */}
+          <div className="flex items-center gap-4">
+            <h1 className="text-sm font-bold font-display text-text-primary tracking-tight flex items-center gap-2">
+              <RadioTower className="w-4 h-4 text-copper" />
+              <span>DETECTION VIEWPORT</span>
             </h1>
-            <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-              Real-time inference wall · {DEMO_CAMERAS.length} edge streams active · Zero cloud latency
-            </p>
-          </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-2">
-            {/* Layout Switcher */}
-            <div className="flex items-center gap-0.5 bg-industrial-900 border border-industrial-750 rounded-lg p-0.5">
-              {(["2x2", "3x3", "4x4"] as LayoutPreset[]).map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => { setLayoutPreset(preset); setFocusedCamId(null); }}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold font-mono transition-all ${
-                    layoutPreset === preset
-                      ? "bg-blue-600 text-white shadow"
-                      : "text-slate-400 hover:text-white hover:bg-industrial-750"
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-
-            {/* Sector Filter */}
-            <button
-              type="button"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-industrial-900 border border-industrial-750 rounded-lg text-[11px] font-mono text-slate-300 hover:text-white hover:border-industrial-600 transition-all"
-            >
-              <span className="text-slate-500">📍</span>
-              <span>All Sectors</span>
-              <ChevronDown className="w-3 h-3 text-slate-500" />
-            </button>
-
-            {/* View Mode Toggle */}
-            <div className="flex items-center gap-0.5 bg-industrial-900 border border-industrial-750 rounded-lg p-0.5">
+            {/* Locked Segmented Control: Live Camera ↔ Upload Video */}
+            <div className="flex items-center bg-base border border-border rounded-sm p-0.5">
               <button
                 type="button"
-                className="p-1.5 rounded bg-industrial-700 text-white"
-                title="Grid View"
+                onClick={() => setDetectionMode("live")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-2xs font-mono font-semibold transition-all ${
+                  detectionMode === "live"
+                    ? "bg-copper text-base shadow-sm"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
+                <Layers className="w-3 h-3" />
+                <span>LIVE CAMERA FEEDS</span>
               </button>
               <button
                 type="button"
-                className="p-1.5 rounded text-slate-500 hover:text-white hover:bg-industrial-750 transition-colors"
-                title="List View"
+                onClick={() => setDetectionMode("upload")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-2xs font-mono font-semibold transition-all ${
+                  detectionMode === "upload"
+                    ? "bg-copper text-base shadow-sm"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
               >
-                <List className="w-3.5 h-3.5" />
+                <Film className="w-3 h-3" />
+                <span>UPLOAD VIDEO</span>
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Camera Grid — fills all remaining height, tiles auto-size to fit */}
-        <div className="flex-1 min-h-0 overflow-hidden p-2.5">
-          <div
-            className={`h-full grid gap-2 ${
-              focusedCamId
-                ? "grid-cols-1 grid-rows-1"
-                : `${gridColsClass} ${gridRowsClass}`
-            }`}
-          >
-            {displayedCameras.map((camera) => {
-              const camAlerts = Object.values(byId).filter(
-                (a) => a.cameraId === camera.id
-              );
-              return (
-                <StreamTile
-                  key={camera.id}
-                  camera={camera}
-                  alerts={camAlerts}
-                  onSelectAlert={(id) => setSelectedAlertId(id)}
-                  isExpanded={focusedCamId === camera.id}
-                  onToggleExpand={() =>
-                    setFocusedCamId(focusedCamId === camera.id ? null : camera.id)
-                  }
-                />
-              );
-            })}
-          </div>
-
-          {focusedCamId && (
-            <div className="mt-2 text-right">
-              <button
-                type="button"
-                onClick={() => setFocusedCamId(null)}
-                className="text-[11px] font-mono text-slate-400 hover:text-white underline"
-              >
-                ← Return to {layoutPreset} grid
-              </button>
+          {/* Controls for Live Mode */}
+          {detectionMode === "live" && (
+            <div className="flex items-center gap-2">
+              {/* Layout Switcher */}
+              <div className="flex items-center gap-0.5 bg-base border border-border rounded-sm p-0.5">
+                {(["2x2", "3x3", "4x4"] as LayoutPreset[]).map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      setLayoutPreset(preset);
+                      setFocusedCamId(null);
+                    }}
+                    className={`px-2 py-0.5 rounded-sm text-2xs font-mono transition-colors ${
+                      layoutPreset === preset
+                        ? "bg-copper text-base font-bold"
+                        : "text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
+
+        {/* Dynamic Viewport Container */}
+        {detectionMode === "upload" ? (
+          <VideoUploadDetection />
+        ) : (
+          <div className="flex-1 min-h-0 overflow-hidden p-2">
+            <div
+              className={`h-full grid gap-2 ${
+                focusedCamId
+                  ? "grid-cols-1 grid-rows-1"
+                  : `${gridColsClass} ${gridRowsClass}`
+              }`}
+            >
+              {displayedCameras.map((camera) => {
+                const camAlerts = Object.values(byId).filter(
+                  (a) => a.cameraId === camera.id
+                );
+                return (
+                  <StreamTile
+                    key={camera.id}
+                    camera={camera}
+                    alerts={camAlerts}
+                    onSelectAlert={(id) => setSelectedAlertId(id)}
+                    isExpanded={focusedCamId === camera.id}
+                    onToggleExpand={() =>
+                      setFocusedCamId(
+                        focusedCamId === camera.id ? null : camera.id
+                      )
+                    }
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
-          RIGHT: Alert Queue Panel (360px fixed)
+          RIGHT: Incident Alert Queue Panel (340px fixed)
       ═══════════════════════════════════════════════════════════════ */}
-      <div className="w-[360px] shrink-0 flex flex-col overflow-hidden bg-industrial-900/60">
+      <div className="w-[340px] shrink-0 flex flex-col overflow-hidden bg-surface border-l border-border">
         {/* Panel Header */}
-        <div className="px-4 pt-3 pb-2 border-b border-industrial-800 shrink-0">
-          <div className="flex items-center justify-between mb-2.5">
-            <h2 className="text-[13px] font-bold text-white flex items-center gap-2">
-              <Bell className="w-4 h-4 text-slate-400" />
-              ALERT QUEUE
+        <div className="px-3 pt-3 pb-2 border-b border-border shrink-0">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-xs font-bold font-display text-text-primary flex items-center gap-1.5">
+              <Bell className="w-3.5 h-3.5 text-copper" />
+              <span>INCIDENT QUEUE</span>
               {activeAlerts.length > 0 && (
-                <span className="text-[10px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded-full leading-none">
+                <span className="text-[9px] font-mono font-bold bg-critical text-text-primary px-1.5 py-0.5 rounded-sm">
                   {activeAlerts.length}
                 </span>
               )}
             </h2>
             <Link
               href="/alerts"
-              className="flex items-center gap-1 text-[11px] font-mono text-blue-400 hover:text-blue-300 transition-colors"
+              className="flex items-center gap-0.5 text-2xs font-mono text-copper hover:underline"
             >
-              View All <ChevronRight className="w-3.5 h-3.5" />
+              Full Queue <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
 
@@ -414,23 +400,18 @@ export default function LiveWallPage() {
                 key={tab.key}
                 type="button"
                 onClick={() => setAlertFilter(tab.key)}
-                className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold font-mono transition-all ${
+                className={`flex items-center gap-1 px-1.5 py-1 rounded-sm text-[10px] font-mono transition-colors ${
                   alertFilter === tab.key
-                    ? "bg-industrial-750 text-white border border-industrial-600"
-                    : "text-slate-500 hover:text-slate-300 hover:bg-industrial-800/50"
+                    ? "bg-elevated text-text-primary border border-border font-bold"
+                    : "text-text-secondary hover:text-text-primary border border-transparent"
                 }`}
               >
-                {tab.key === "critical" && <Flame className="w-2.5 h-2.5 text-red-400" />}
-                {tab.key === "warning" && <AlertTriangle className="w-2.5 h-2.5 text-amber-400" />}
-                {tab.key === "info" && <Info className="w-2.5 h-2.5 text-sky-400" />}
-                <span className={alertFilter === tab.key ? "text-white" : tab.color}>
-                  {tab.label}
-                </span>
+                <span>{tab.label}</span>
                 <span
-                  className={`px-1 rounded text-[9px] ${
+                  className={`px-1 rounded-sm text-[9px] ${
                     alertFilter === tab.key
-                      ? "bg-industrial-600 text-slate-200"
-                      : "text-slate-600"
+                      ? "bg-base text-text-primary"
+                      : "text-text-secondary"
                   }`}
                 >
                   {tab.count}
@@ -441,17 +422,15 @@ export default function LiveWallPage() {
         </div>
 
         {/* Alert List */}
-        <div className="flex-1 overflow-y-auto px-3 py-2.5 space-y-2">
+        <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-2">
           {filteredAlerts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-32 text-center">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600 mb-2" />
-              <p className="text-[11px] font-mono text-slate-500">
-                {alertFilter === "all"
-                  ? "No active violations"
-                  : `No ${alertFilter} alerts`}
+            <div className="flex flex-col items-center justify-center h-40 text-center">
+              <CheckCircle2 className="w-7 h-7 text-safe mb-2" />
+              <p className="text-xs font-mono text-text-primary">
+                All Sectors Nominal
               </p>
-              <p className="text-[10px] font-mono text-slate-600 mt-0.5">
-                All monitored sectors clear
+              <p className="text-2xs font-mono text-text-secondary mt-0.5">
+                No active breaches detected
               </p>
             </div>
           ) : (
@@ -467,22 +446,9 @@ export default function LiveWallPage() {
 
         {/* Panel Footer */}
         {activeAlerts.length > 0 && (
-          <div className="px-4 py-2 border-t border-industrial-800 shrink-0">
-            <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                  {criticalAlerts.length} critical
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  {warningAlerts.length} warning
-                </span>
-              </div>
-              <span className="text-slate-600">
-                Sorted by severity
-              </span>
-            </div>
+          <div className="px-3 py-2 border-t border-border shrink-0 bg-base text-2xs font-mono text-text-secondary flex items-center justify-between">
+            <span className="text-copper">CAS PROTOCOL ACTIVE</span>
+            <span>{criticalAlerts.length} P0 CRITICAL</span>
           </div>
         )}
       </div>

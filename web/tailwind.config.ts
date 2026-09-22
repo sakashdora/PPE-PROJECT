@@ -11,102 +11,109 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
-        mono: ["JetBrains Mono", "Courier New", "monospace"],
+        display: ["'Bricolage Grotesque'", "sans-serif"],
+        sans: ["'Hanken Grotesk'", "sans-serif"],
+        body: ["'Hanken Grotesk'", "sans-serif"],
+        mono: ["'JetBrains Mono'", "monospace"],
       },
       fontSize: {
-        "3xs": ["0.6rem", { lineHeight: "0.85rem" }],
-        "2xs": ["0.68rem", { lineHeight: "0.95rem" }],
+        "3xs": ["0.62rem", { lineHeight: "0.85rem" }],
+        "2xs": ["0.7rem", { lineHeight: "0.95rem" }],
       },
       colors: {
-        industrial: {
-          950: "#060b16",
-          900: "#0b1221",
-          850: "#0f1929",
-          800: "#152030",
-          750: "#1b2a40",
-          700: "#213252",
-          600: "#2e4470",
-          500: "#3d5a90",
+        // Forge Surfaces
+        base: "#16140F",
+        canvas: {
+          DEFAULT: "#16140F",
         },
-        nav: {
-          bg: "#0a1222",
-          border: "#1a2540",
-          active: "#1d3461",
-          hover: "#141f35",
+        surface: {
+          DEFAULT: "#211D17",
+          elevated: "#2C2620",
         },
+        elevated: {
+          DEFAULT: "#2C2620",
+        },
+        border: {
+          DEFAULT: "#3A332A",
+        },
+        depth: {
+          DEFAULT: "#3A332A",
+          border: "#3A332A",
+        },
+
+        // Brand Accents
+        copper: {
+          DEFAULT: "#C6752B",
+          hover: "#B26521",
+          light: "rgba(198, 117, 43, 0.15)",
+        },
+        jade: {
+          DEFAULT: "#1B8A5A",
+          light: "rgba(27, 138, 90, 0.15)",
+        },
+
+        // Backward-compatible nominal mapped to Signal Copper / Jade
+        nominal: {
+          DEFAULT: "#C6752B",
+          bg: "rgba(198, 117, 43, 0.15)",
+        },
+        telemetry: {
+          DEFAULT: "#A69C8C",
+        },
+
+        // Severity System
         critical: {
-          DEFAULT: "#ef4444",
-          dark: "#7f1d1d",
-          light: "#fca5a5",
-          bg: "#2d0808",
-          border: "#b91c1c",
+          DEFAULT: "#C1272D",
+          dark: "#681216",
+          bg: "rgba(193, 39, 45, 0.18)",
+          border: "#C1272D",
         },
         warning: {
-          DEFAULT: "#f59e0b",
-          dark: "#78350f",
-          light: "#fde68a",
-          bg: "#2d1a00",
-          border: "#d97706",
-        },
-        info: {
-          DEFAULT: "#38bdf8",
-          dark: "#0c4a6e",
-          light: "#bae6fd",
-          bg: "#071d2f",
-          border: "#0284c7",
-        },
-        safe: {
-          DEFAULT: "#10b981",
-          dark: "#064e3b",
-          light: "#a7f3d0",
-          bg: "#022c22",
-          border: "#059669",
+          DEFAULT: "#F2760C",
+          dark: "#7E3902",
+          bg: "rgba(242, 118, 12, 0.18)",
+          border: "#F2760C",
         },
         compliance: {
-          DEFAULT: "#64748b",
-          dark: "#334155",
-          light: "#cbd5e1",
-          bg: "#0f172a",
+          DEFAULT: "#F2760C",
+          dark: "#7E3902",
+          bg: "rgba(242, 118, 12, 0.18)",
+          border: "#F2760C",
         },
+        safe: {
+          DEFAULT: "#3E8E5A",
+          dark: "#1B4729",
+          bg: "rgba(62, 142, 90, 0.18)",
+          border: "#3E8E5A",
+        },
+        neutral: {
+          DEFAULT: "#7A7368",
+          dark: "#3B3731",
+          bg: "rgba(122, 115, 104, 0.18)",
+        },
+
+        text: {
+          primary: "#F3EFE6",
+          secondary: "#A69C8C",
+        },
+      },
+      borderRadius: {
+        sm: "2px",
+        DEFAULT: "4px",
       },
       animation: {
-        "pulse-fast": "pulse 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "siren-glow": "sirenGlow 1.2s ease-in-out infinite",
-        "border-alert": "borderFlash 1s ease-in-out infinite",
-        "radar-sweep": "radarSweep 4s linear infinite",
-        "fade-in": "fadeIn 0.18s ease-out forwards",
-        "ticker": "tickerScroll 20s linear infinite",
-        "status-pulse": "statusPulse 2s ease-in-out infinite",
+        "hard-pulse": "hardPulse 1s steps(2, start) infinite",
+        "ticker": "tickerScroll 24s linear infinite",
       },
       keyframes: {
-        sirenGlow: {
-          "0%, 100%": { boxShadow: "0 0 12px rgba(239, 68, 68, 0.3)" },
-          "50%": { boxShadow: "0 0 24px rgba(239, 68, 68, 0.7), 0 0 4px rgba(239, 68, 68, 0.4) inset" },
-        },
-        borderFlash: {
-          "0%, 100%": { borderColor: "rgba(239, 68, 68, 1)", boxShadow: "0 0 18px rgba(239,68,68,0.5)" },
-          "50%": { borderColor: "rgba(239, 68, 68, 0.25)", boxShadow: "0 0 4px rgba(239,68,68,0.1)" },
-        },
-        radarSweep: {
-          "0%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(360deg)" },
-        },
-        fadeIn: {
-          from: { opacity: "0", transform: "translateY(-4px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
+        hardPulse: {
+          "0%, 100%": { opacity: "1", borderColor: "#C1272D" },
+          "50%": { opacity: "0.3", borderColor: "transparent" },
         },
         tickerScroll: {
           from: { transform: "translateX(0)" },
           to: { transform: "translateX(-50%)" },
         },
-        statusPulse: {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.4" },
-        },
-      },
-      backgroundImage: {
-        "grid-industrial": "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)",
       },
     },
   },

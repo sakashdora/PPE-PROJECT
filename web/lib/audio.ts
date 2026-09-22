@@ -7,6 +7,19 @@ class AudioAlarmController {
   private sirenTimer: NodeJS.Timeout | null = null;
   private isSirenPlaying = false;
   private unlocked = false;
+  private muted = false;
+
+  public isMuted(): boolean {
+    return this.muted;
+  }
+
+  public toggleMute(): boolean {
+    this.muted = !this.muted;
+    if (this.muted) {
+      this.stopSiren();
+    }
+    return this.muted;
+  }
 
   private initCtx(): AudioContext | null {
     if (typeof window === "undefined") return null;

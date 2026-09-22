@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Navbar } from "@/components/Navbar";
-import { ConnectionBar } from "@/components/ConnectionBar";
-import { CriticalBanner } from "@/components/CriticalBanner";
-import { StatusFooter } from "@/components/StatusFooter";
+import { TopStatusStrip } from "@/components/TopStatusStrip";
+import { BottomDock } from "@/components/BottomDock";
 import { AudioUnlockGateModal } from "@/components/AlarmController";
+import { CopilotModal } from "@/components/CopilotModal";
 import { useAlertsStore } from "@/features/alerts/alerts.store";
 import { connectAlerts } from "@/realtime/wsClient";
 
@@ -22,6 +21,8 @@ export default function AppLayout({
   const setConn = useAlertsStore((s) => s.setConn);
   const setSeq = useAlertsStore((s) => s.setSeq);
 
+  const [copilotOpen, setCopilotOpen] = useState(false);
+
   useEffect(() => {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
     if (!wsUrl) return;
@@ -36,32 +37,29 @@ export default function AppLayout({
   }, [upsert, setConn, setSeq]);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-industrial-950 text-slate-100">
-      {/* Audio Autoplay Modal (portal, does not affect layout) */}
+    <div className="flex flex-col h-screen overflow-hidden bg-base text-text-primary font-sans">
+      {/* Audio Autoplay Modal (portal) */}
       <AudioUnlockGateModal />
 
-      {/* Fixed top chrome: ConnectionBar (if degraded) + Navbar + CriticalBanner */}
-      <div className="flex-none">
-        <ConnectionBar />
-        <Navbar />
-        <CriticalBanner />
-      </div>
+      {/* Floating Copilot Modal */}
+      <CopilotModal isOpen={copilotOpen} onClose={() => setCopilotOpen(false)} />
 
-      {/* Main content — full screen for /wall, scrollable max-w-7xl for others */}
+      {/* Unified Single-line Top Status Strip */}
+      <TopStatusStrip onOpenCopilot={() => setCopilotOpen(true)} />
+
+      {/* Main Content Area */}
       {isWallPage ? (
-        <main className="flex-1 min-h-0 overflow-hidden">
+        <main className="flex-1 min-h-0 overflow-hidden pb-16">
           {children}
         </main>
       ) : (
-        <main className="flex-1 min-h-0 overflow-y-auto w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 min-h-0 overflow-y-auto w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pb-24">
           {children}
         </main>
       )}
 
-      {/* Fixed bottom chrome: Status bar */}
-      <div className="flex-none">
-        <StatusFooter />
-      </div>
+      {/* Floating Bottom Dock (Sanctioned backdrop-blur navigation) */}
+      <BottomDock onOpenCopilot={() => setCopilotOpen(true)} />
     </div>
   );
 }

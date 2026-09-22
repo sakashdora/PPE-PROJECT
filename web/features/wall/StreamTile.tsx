@@ -19,13 +19,13 @@ function drawLabel(
   x: number,
   y: number,
   bgColor: string,
-  textColor = "#ffffff"
+  textColor = "#F3EFE6"
 ) {
   ctx.save();
-  ctx.font = "bold 10px monospace";
+  ctx.font = "bold 9px 'JetBrains Mono', monospace";
   const metrics = ctx.measureText(text);
-  const padX = 5;
-  const bannerH = 16;
+  const padX = 4;
+  const bannerH = 15;
   ctx.fillStyle = bgColor;
   ctx.fillRect(x, y - bannerH, metrics.width + padX * 2, bannerH);
   ctx.fillStyle = textColor;
@@ -33,7 +33,7 @@ function drawLabel(
   ctx.restore();
 }
 
-/** Draw a box outline with optional fill */
+/** Draw a box outline with optional fill and corner ticks */
 function drawBox(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -43,35 +43,53 @@ function drawBox(
   color: string,
   opts: { lineWidth?: number; dash?: number[]; fillAlpha?: number } = {}
 ) {
-  const { lineWidth = 2, dash = [], fillAlpha = 0 } = opts;
+  const { lineWidth = 1.5, dash = [], fillAlpha = 0 } = opts;
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
   if (dash.length) ctx.setLineDash(dash);
   else ctx.setLineDash([]);
+
   if (fillAlpha > 0) {
-    // Parse hex color to rgba
-    const r = parseInt(color.slice(1, 3), 16);
-    const g = parseInt(color.slice(3, 5), 16);
-    const b = parseInt(color.slice(5, 7), 16);
+    const r = parseInt(color.slice(1, 3), 16) || 198;
+    const g = parseInt(color.slice(3, 5), 16) || 117;
+    const b = parseInt(color.slice(5, 7), 16) || 43;
     ctx.fillStyle = `rgba(${r},${g},${b},${fillAlpha})`;
     ctx.fillRect(x, y, w, h);
   }
   ctx.strokeRect(x, y, w, h);
+
+  // Tactical corner ticks
+  const tickLen = 6;
+  ctx.setLineDash([]);
+  ctx.lineWidth = lineWidth + 1;
+  // Top Left
+  ctx.beginPath();
+  ctx.moveTo(x, y + tickLen);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x + tickLen, y);
+  ctx.stroke();
+  // Bottom Right
+  ctx.beginPath();
+  ctx.moveTo(x + w, y + h - tickLen);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x + w - tickLen, y + h);
+  ctx.stroke();
+
   ctx.restore();
 }
 
-/** Render the dark factory background with perspective grid and machinery */
+/** Render dark factory background with perspective grid and machinery (Forge Palette) */
 function renderBackground(ctx: CanvasRenderingContext2D, W: number, H: number, tick: number) {
-  // Background gradient
+  // Base carbon background
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, "#07111f");
-  bg.addColorStop(1, "#040c19");
+  bg.addColorStop(0, "#16140F");
+  bg.addColorStop(1, "#100E0A");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Perspective floor grid
-  ctx.strokeStyle = "rgba(30, 50, 80, 0.6)";
+  // Perspective floor grid (using #3A332A border hairline)
+  ctx.strokeStyle = "rgba(58, 51, 42, 0.4)";
   ctx.lineWidth = 0.8;
   const vpX = W / 2;
   const vpY = H * 0.38;
@@ -89,21 +107,21 @@ function renderBackground(ctx: CanvasRenderingContext2D, W: number, H: number, t
     ctx.stroke();
   }
 
-  // Left machine silhouette
-  ctx.fillStyle = "#0b1930";
+  // Left machine silhouette (#211D17 surface)
+  ctx.fillStyle = "#211D17";
   ctx.fillRect(W * 0.02, H * 0.22, W * 0.18, H * 0.58);
-  ctx.fillStyle = "#0d1e35";
+  ctx.fillStyle = "#2C2620";
   for (let i = 0; i < 3; i++) {
     ctx.fillRect(W * 0.025 + i * 2, H * 0.25 + i * 8, W * 0.165, H * 0.06);
   }
 
   // Right machine silhouette
-  ctx.fillStyle = "#0b1930";
+  ctx.fillStyle = "#211D17";
   ctx.fillRect(W * 0.76, H * 0.2, W * 0.22, H * 0.62);
 
-  // Yellow hazard stripes on machine base
+  // Hazard stripes on machine base (Signal Copper / Warning)
   ctx.save();
-  ctx.strokeStyle = "rgba(234, 179, 8, 0.3)";
+  ctx.strokeStyle = "rgba(198, 117, 43, 0.35)";
   ctx.lineWidth = 2.5;
   for (let i = 0; i < 7; i++) {
     ctx.beginPath();
@@ -113,24 +131,24 @@ function renderBackground(ctx: CanvasRenderingContext2D, W: number, H: number, t
   }
   ctx.restore();
 
-  // Scanline
-  const scanY = ((tick * 1.5) % H);
-  ctx.strokeStyle = "rgba(56, 189, 248, 0.06)";
+  // Subtle Scanline (Signal Copper tint)
+  const scanY = (tick * 1.5) % H;
+  ctx.strokeStyle = "rgba(198, 117, 43, 0.08)";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(0, scanY);
   ctx.lineTo(W, scanY);
   ctx.stroke();
 
-  // REC dot (blinks every 25 ticks)
+  // REC dot (blinks every 25 ticks, Deep Jade for recording)
   if (Math.floor(tick / 25) % 2 === 0) {
-    ctx.fillStyle = "rgba(239, 68, 68, 0.85)";
+    ctx.fillStyle = "#1B8A5A";
     ctx.beginPath();
-    ctx.arc(W - 14, 14, 4, 0, Math.PI * 2);
+    ctx.arc(W - 14, 14, 3.5, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  ctx.font = "8px monospace";
+  ctx.fillStyle = "rgba(243, 239, 230, 0.4)";
+  ctx.font = "8px 'JetBrains Mono', monospace";
   ctx.fillText("REC", W - 10, 14);
 }
 
@@ -138,132 +156,136 @@ export const StreamTile: React.FC<StreamTileProps> = ({
   camera,
   alerts,
   onSelectAlert,
-  isExpanded = false,
+  isExpanded,
   onToggleExpand,
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [mjpegOnline, setMjpegOnline] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hasMJPEG, setHasMJPEG] = useState(false);
 
-  // Probe MJPEG edge server
-  useEffect(() => {
-    let alive = true;
-    const probe = async () => {
-      try {
-        const r = await fetch("http://localhost:8080/health", { signal: AbortSignal.timeout(1500) });
-        if (r.ok && alive) setMjpegOnline(true);
-      } catch {
-        if (alive) setMjpegOnline(false);
-      }
-    };
-    probe();
-    const t = setInterval(probe, 4000);
-    return () => { alive = false; clearInterval(t); };
-  }, []);
-
-  const activeAlert = alerts.find((a) => a.status === "open" || a.status === "acknowledged");
+  const activeAlert = alerts.find(
+    (a) => a.status === "open" || a.status === "acknowledged"
+  );
   const isCritical = activeAlert?.severity === "CRITICAL";
   const hasMissingHelmet =
     activeAlert?.type === "missing_ppe" &&
-    activeAlert.items.some((i) => i.includes("helmet") || i === "head");
-  const isViolation = !!activeAlert && !isCritical;
-  const conf = activeAlert ? (activeAlert.confidence * 100).toFixed(2) : "0.94";
+    activeAlert.items.some((i) => i.includes("helmet") || i.includes("hardhat"));
+  const isViolation = !!activeAlert;
+  const conf = activeAlert ? Math.round(activeAlert.confidence * 100) : 94;
 
-  // ── Canvas renderer ──────────────────────────────────────────────────────────
+  // Poll MJPEG stream if explicitly enabled
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_ENABLE_MJPEG !== "true") return;
+    let attempts = 0;
+    const checkLiveStream = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/health", {
+          signal: AbortSignal.timeout(1000),
+        });
+        if (res.ok) setHasMJPEG(true);
+      } catch {
+        attempts++;
+        if (attempts >= 2) return;
+      }
+    };
+    checkLiveStream();
+  }, []);
+
+  // Canvas drawing simulation
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
     let animId: number;
     let tick = 0;
 
     const render = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) { animId = requestAnimationFrame(render); return; }
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { animId = requestAnimationFrame(render); return; }
-
-      const W = canvas.offsetWidth || canvas.width;
-      const H = canvas.offsetHeight || canvas.height;
-
-      // Sync canvas resolution to display size
-      if (canvas.width !== W || canvas.height !== H) {
-        canvas.width = W;
-        canvas.height = H;
-      }
-
       tick++;
+      const W = canvas.width;
+      const H = canvas.height;
+
       renderBackground(ctx, W, H, tick);
 
       if (isCritical) {
-        // ── FIRE / SMOKE scenario ──────────────────────────────────────────
-        const pulse = Math.abs(Math.sin(tick * 0.12)) * 5;
+        // CRITICAL: Fire/Smoke detection
+        const px = W * 0.4 + Math.sin(tick * 0.05) * 6;
+        const py = H * 0.28 + Math.cos(tick * 0.03) * 4;
+        const pw = W * 0.32;
+        const ph = H * 0.46;
 
-        // Orange fire glow bloom
-        const glow = ctx.createRadialGradient(W * 0.55, H * 0.65, 5, W * 0.55, H * 0.65, W * 0.3);
-        glow.addColorStop(0, `rgba(251,146,60,${0.28 + Math.sin(tick * 0.1) * 0.08})`);
-        glow.addColorStop(0.6, `rgba(239,68,68,${0.1})`);
-        glow.addColorStop(1, "transparent");
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
+        drawBox(ctx, px, py, pw, ph, "#C1272D", {
+          lineWidth: 2,
+          fillAlpha: 0.12,
+        });
+        drawLabel(
+          ctx,
+          `FLAME/SMOKE  ${conf}%  [P0-CRIT]`,
+          px,
+          py,
+          "#C1272D",
+          "#F3EFE6"
+        );
 
-        // Fire detection bounding box
-        const fx = W * 0.38 + pulse * 0.3;
-        const fy = H * 0.3;
-        const fw = W * 0.34 + pulse;
-        const fh = H * 0.42;
-        drawBox(ctx, fx, fy, fw, fh, "#ef4444", { lineWidth: 2.5, fillAlpha: 0.12 });
-        drawLabel(ctx, `FIRE  ${conf}%`, fx, fy, "#dc2626");
-
-        // Smoke box
-        drawBox(ctx, W * 0.33, H * 0.08, W * 0.3, H * 0.22, "#f97316", { lineWidth: 1.5, dash: [5, 3], fillAlpha: 0.06 });
-        drawLabel(ctx, "SMOKE  0.87", W * 0.33, H * 0.08, "#ea580c");
-
-        // Animated flame particles
+        // Render smoke/fire particles (Matte Safety Red + Safety Orange)
         for (let i = 0; i < 9; i++) {
-          const px = W * 0.42 + Math.sin(tick * 0.09 + i * 0.8) * 28 + i * 18;
-          const py = H * 0.58 - Math.abs(Math.sin(tick * 0.14 + i * 0.65)) * 32 - i * 4;
-          const pr = 2.5 + Math.abs(Math.sin(tick * 0.18 + i)) * 4;
-          const fc = ["#fbbf24", "#f97316", "#ef4444", "#fde68a", "#fb923c"][i % 5];
-          ctx.fillStyle = fc;
+          const fx = W * 0.46 + Math.sin(tick * 0.09 + i * 0.8) * 28 + i * 14;
+          const fy = H * 0.58 - Math.abs(Math.sin(tick * 0.14 + i * 0.65)) * 32 - i * 4;
+          const fr = 2.5 + Math.abs(Math.sin(tick * 0.18 + i)) * 3.5;
+          ctx.fillStyle = ["#C1272D", "#F2760C", "#681216", "#7E3902"][i % 4];
           ctx.beginPath();
-          ctx.arc(px, py, pr, 0, Math.PI * 2);
+          ctx.arc(fx, fy, fr, 0, Math.PI * 2);
           ctx.fill();
         }
-
       } else if (hasMissingHelmet) {
-        // ── MISSING HELMET scenario ───────────────────────────────────────
-        // Worker person box (blue)
-        const px = W * 0.3, py = H * 0.18;
-        const pw = W * 0.19, ph = H * 0.58;
-        drawBox(ctx, px, py, pw, ph, "#38bdf8", { lineWidth: 2, fillAlpha: 0.04 });
-        drawLabel(ctx, "PERSON  0.92", px, py, "#0284c7");
+        // WARNING: Missing Helmet scenario
+        const px = W * 0.3;
+        const py = H * 0.18;
+        const pw = W * 0.2;
+        const ph = H * 0.58;
 
-        // Head region — NO HELMET (red dashed)
-        const hx = px + pw * 0.08, hy = py + 2;
-        const hw = pw * 0.84, hh = ph * 0.23;
-        drawBox(ctx, hx, hy, hw, hh, "#ef4444", { lineWidth: 2, dash: [3, 2], fillAlpha: 0.14 });
-        drawLabel(ctx, `NO HELMET  ${conf}%`, hx, hy, "#dc2626");
+        // Worker bounding box (Warm Neutral / Copper accent)
+        drawBox(ctx, px, py, pw, ph, "#7A7368", { lineWidth: 1.5, fillAlpha: 0.04 });
+        drawLabel(ctx, "WORKER_04  0.94", px, py, "#2C2620", "#F3EFE6");
+
+        // Missing Hardhat Region (Safety Orange #F2760C)
+        const hx = px + pw * 0.1;
+        const hy = py + 2;
+        const hw = pw * 0.8;
+        const hh = ph * 0.22;
+        drawBox(ctx, hx, hy, hw, hh, "#F2760C", {
+          lineWidth: 1.5,
+          dash: [3, 2],
+          fillAlpha: 0.16,
+        });
+        drawLabel(ctx, `NO HELMET  ${conf}%`, hx, hy, "#F2760C", "#F3EFE6");
 
         // Second worker — compliant
-        const p2x = W * 0.55, p2y = H * 0.22;
-        const p2w = W * 0.17, p2h = H * 0.5;
-        drawBox(ctx, p2x, p2y, p2w, p2h, "#10b981", { lineWidth: 1.5, fillAlpha: 0.04 });
-        drawLabel(ctx, "PERSON  0.91", p2x, p2y, "#059669");
-        drawLabel(ctx, "HARDHAT  0.87", p2x + 2, p2y + 20, "#047857", "#d1fae5");
-
+        const p2x = W * 0.56;
+        const p2y = H * 0.22;
+        const p2w = W * 0.18;
+        const p2h = H * 0.5;
+        drawBox(ctx, p2x, p2y, p2w, p2h, "#7A7368", { lineWidth: 1.5, fillAlpha: 0.04 });
+        drawLabel(ctx, "WORKER_07  0.92", p2x, p2y, "#2C2620", "#F3EFE6");
+        drawLabel(ctx, "HARDHAT ✓  0.91", p2x + 2, p2y + 18, "#3E8E5A", "#F3EFE6");
       } else {
-        // ── FULLY COMPLIANT scenario ──────────────────────────────────────
-        // Worker 1
-        const w1x = W * 0.28, w1y = H * 0.18;
-        const w1w = W * 0.18, w1h = H * 0.56;
-        drawBox(ctx, w1x, w1y, w1w, w1h, "#10b981", { lineWidth: 1.5, fillAlpha: 0.04 });
-        drawLabel(ctx, "PERSON  0.96", w1x, w1y, "#059669");
-        drawLabel(ctx, "HELMET ✓", w1x + 2, w1y + 20, "#047857", "#d1fae5");
-        drawLabel(ctx, "VEST ✓", w1x + 2, w1y + 40, "#0891b2", "#e0f2fe");
+        // COMPLIANT: Full PPE pass
+        const w1x = W * 0.28;
+        const w1y = H * 0.18;
+        const w1w = W * 0.19;
+        const w1h = H * 0.56;
+        drawBox(ctx, w1x, w1y, w1w, w1h, "#7A7368", { lineWidth: 1.5, fillAlpha: 0.04 });
+        drawLabel(ctx, "WORKER_01  0.96", w1x, w1y, "#2C2620", "#F3EFE6");
+        drawLabel(ctx, "HELMET ✓", w1x + 2, w1y + 18, "#3E8E5A", "#F3EFE6");
+        drawLabel(ctx, "VEST ✓", w1x + 2, w1y + 34, "#3E8E5A", "#F3EFE6");
 
-        // Worker 2
-        const w2x = W * 0.54, w2y = H * 0.22;
-        const w2w = W * 0.17, w2h = H * 0.5;
-        drawBox(ctx, w2x, w2y, w2w, w2h, "#10b981", { lineWidth: 1.5, fillAlpha: 0.04 });
-        drawLabel(ctx, "PERSON  0.91", w2x, w2y, "#059669");
-        drawLabel(ctx, "HARDHAT  0.87", w2x + 2, w2y + 20, "#047857", "#d1fae5");
+        const w2x = W * 0.56;
+        const w2y = H * 0.22;
+        const w2w = W * 0.18;
+        const w2h = H * 0.5;
+        drawBox(ctx, w2x, w2y, w2w, w2h, "#7A7368", { lineWidth: 1.5, fillAlpha: 0.04 });
+        drawLabel(ctx, "WORKER_03  0.93", w2x, w2y, "#2C2620", "#F3EFE6");
+        drawLabel(ctx, "HARDHAT ✓", w2x + 2, w2y + 18, "#3E8E5A", "#F3EFE6");
       }
 
       animId = requestAnimationFrame(render);
@@ -273,54 +295,43 @@ export const StreamTile: React.FC<StreamTileProps> = ({
     return () => cancelAnimationFrame(animId);
   }, [camera.id, isCritical, hasMissingHelmet, conf]);
 
-  // ── Derived state for status display ────────────────────────────────────────
-  const borderClass = isCritical
-    ? "border-red-500 ring-1 ring-red-500/40 animate-border-alert"
-    : isViolation
-    ? "border-amber-500/60"
-    : "border-industrial-750 hover:border-industrial-600";
-
-  const statusBadge = isCritical
-    ? { label: "🔴 CRITICAL", cls: "bg-red-600/90 text-white" }
-    : hasMissingHelmet
-    ? { label: "⚠ VIOLATION: HELMET", cls: "bg-amber-500/90 text-black font-bold" }
-    : activeAlert
-    ? { label: `⚠ VIOLATION: ${activeAlert.items[0]?.replace("no_", "").toUpperCase()}`, cls: "bg-amber-500/90 text-black font-bold" }
-    : { label: "✓ NORMAL", cls: "bg-emerald-700/80 text-emerald-100" };
-
-  const compBadge = isCritical || activeAlert
-    ? { icon: "⚠", cls: "text-amber-400" }
-    : { icon: "✓", cls: "text-emerald-400" };
-
   return (
     <div
-      className={`relative flex flex-col rounded-lg overflow-hidden bg-industrial-900 border transition-all duration-300 ${borderClass}`}
+      className={`relative flex flex-col rounded-sm overflow-hidden bg-surface border transition-colors duration-100 ${
+        isCritical
+          ? "border-critical border-[2px] animate-critical-pulse"
+          : isViolation
+          ? "border-warning"
+          : "border-border"
+      }`}
     >
-      {/* ── Top info overlay ── */}
-      <div
-        className="absolute inset-x-0 top-0 z-20 px-2.5 py-1.5 flex items-center justify-between"
-        style={{ background: "linear-gradient(180deg,rgba(3,9,18,0.95) 0%,rgba(3,9,18,0.55) 60%,transparent 100%)" }}
-      >
-        {/* Left: cam + sector */}
+      {/* HUD Corner Brackets */}
+      <div className="hud-bracket top-left" />
+      <div className="hud-bracket top-right" />
+      <div className="hud-bracket bottom-left" />
+      <div className="hud-bracket bottom-right" />
+
+      {/* Top Stream Header */}
+      <div className="absolute inset-x-0 top-0 z-20 px-2.5 py-1.5 flex items-center justify-between border-b border-border bg-surface/90">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold text-white font-mono tracking-wide leading-none">
-            {camera.name}
+          <span className="text-[11px] font-bold text-text-primary font-mono tracking-wide leading-none">
+            {camera.name.toUpperCase()}
           </span>
-          <span className="text-[9px] font-mono text-slate-400 bg-industrial-800/80 px-1.5 py-0.5 rounded border border-industrial-700/40">
-            {camera.sector}
+          <span className="text-[9px] font-mono text-text-secondary bg-elevated px-1.5 py-0.5 rounded-sm border border-border">
+            {camera.sector.toUpperCase()}
           </span>
         </div>
-        {/* Right: LIVE + FPS + latency + expand */}
+
         <div className="flex items-center gap-1.5">
-          <span className="flex items-center gap-1 bg-emerald-900/60 border border-emerald-700/50 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold text-emerald-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="flex items-center gap-1 bg-jade/20 border border-jade px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-bold text-jade">
+            <span className="w-1.5 h-1.5 rounded-none bg-jade" />
             LIVE
           </span>
-          <span className="hidden sm:flex items-center gap-1 text-[9px] font-mono text-slate-300 bg-black/50 px-1.5 py-0.5 rounded border border-white/5">
-            <RadioTower className="w-2.5 h-2.5 text-slate-400" />
+          <span className="hidden sm:flex items-center gap-1 text-[9px] font-mono text-text-secondary bg-elevated px-1.5 py-0.5 rounded-sm border border-border">
+            <RadioTower className="w-2.5 h-2.5 text-copper" />
             {camera.fps.toFixed(1)} FPS
-            <span className="opacity-30">·</span>
-            <span className={camera.latencyMs < 40 ? "text-emerald-400" : "text-amber-400"}>
+            <span className="text-border">·</span>
+            <span className={camera.latencyMs < 40 ? "text-safe" : "text-warning"}>
               {camera.latencyMs}ms
             </span>
           </span>
@@ -328,7 +339,7 @@ export const StreamTile: React.FC<StreamTileProps> = ({
             <button
               type="button"
               onClick={onToggleExpand}
-              className="p-1 text-slate-400 hover:text-white rounded bg-black/40 hover:bg-black/70 transition-colors"
+              className="p-1 text-text-secondary hover:text-text-primary rounded-sm bg-elevated border border-border transition-colors"
             >
               {isExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
             </button>
@@ -336,61 +347,57 @@ export const StreamTile: React.FC<StreamTileProps> = ({
         </div>
       </div>
 
-      {/* ── Video / Canvas — fills the tile ── */}
-      <div className="flex-1 relative overflow-hidden bg-black min-h-0">
-        {mjpegOnline ? (
+      {/* Surveillance Video Feed / Canvas */}
+      <div className="relative flex-1 bg-base min-h-0">
+        {hasMJPEG ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`http://localhost:8080/stream/${camera.id}`}
+            src={`http://localhost:8080/stream?cam=${camera.id}`}
             alt={camera.name}
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={() => setMjpegOnline(false)}
+            className="w-full h-full object-cover"
           />
         ) : (
           <canvas
             ref={canvasRef}
-            className="absolute inset-0 w-full h-full"
+            width={640}
+            height={360}
+            className="w-full h-full object-cover"
           />
-        )}
-
-        {/* Critical fire/smoke overlay at video bottom */}
-        {isCritical && activeAlert && (
-          <button
-            type="button"
-            onClick={() => onSelectAlert?.(activeAlert.id)}
-            className="absolute bottom-0 inset-x-0 z-20 py-1.5 px-2.5
-                       bg-red-600/90 text-white text-[10px] font-bold font-mono
-                       flex items-center justify-between animate-pulse"
-          >
-            <span>🔥 FIRE DETECTED — {camera.sector}</span>
-            <span className="text-[9px] bg-black/40 px-2 py-0.5 rounded">INSPECT →</span>
-          </button>
         )}
       </div>
 
-      {/* ── Bottom status bar ── */}
-      <div
-        className="absolute inset-x-0 bottom-0 z-20 px-2.5 py-1.5 flex items-end justify-between pointer-events-none"
-        style={{ background: "linear-gradient(0deg,rgba(3,9,18,0.97) 0%,rgba(3,9,18,0.65) 65%,transparent 100%)" }}
-      >
-        {/* Left: compliance + location */}
-        <div className="flex flex-col gap-0.5">
-          <span className={`text-[9px] font-bold font-mono flex items-center gap-1 ${compBadge.cls}`}>
-            {compBadge.icon} COMPLIANCE
-          </span>
-          <span className="text-[9px] font-mono text-slate-400 leading-none">
-            {camera.id.toUpperCase()} · {camera.location}
+      {/* Bottom Status Ticker */}
+      <div className="px-2.5 py-1.5 bg-surface border-t border-border flex items-center justify-between text-[10px] font-mono">
+        <div className="flex items-center gap-1.5 truncate">
+          <span
+            className={`w-1.5 h-1.5 rounded-none ${
+              isCritical
+                ? "bg-critical animate-pulse"
+                : isViolation
+                ? "bg-warning"
+                : "bg-safe"
+            }`}
+          />
+          <span className="text-text-secondary truncate">
+            {isCritical
+              ? "FIRE HAZARD ACTIVE — CAS LATCHED"
+              : hasMissingHelmet
+              ? "PPE VIOLATION: HELMET BREACH"
+              : activeAlert
+              ? `HAZARD: ${activeAlert.items[0]?.toUpperCase()}`
+              : "ZONE NOMINAL — FULL COMPLIANCE"}
           </span>
         </div>
 
-        {/* Right: status badge */}
-        <button
-          type="button"
-          className={`pointer-events-auto text-[9px] font-bold font-mono px-2 py-0.5 rounded ${statusBadge.cls}`}
-          onClick={() => activeAlert && onSelectAlert?.(activeAlert.id)}
-        >
-          {statusBadge.label}
-        </button>
+        {activeAlert && onSelectAlert && (
+          <button
+            type="button"
+            onClick={() => onSelectAlert(activeAlert.id)}
+            className="text-[9px] font-mono text-copper hover:underline uppercase shrink-0 font-bold ml-2"
+          >
+            Triage [{conf}%]
+          </button>
+        )}
       </div>
     </div>
   );

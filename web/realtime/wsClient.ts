@@ -65,13 +65,20 @@ export function connectAlerts(opts: {
 
       ws.onclose = () => {
         if (isClosed) return;
-        opts.onStatus("reconnecting");
-        const delay = Math.min(1000 * 2 ** retryCount++, 10000);
+        retryCount++;
+        if (retryCount === 1) {
+          console.info(
+            `[ARGUS Realtime] WebSocket gateway not reachable at ${opts.url}. Operating in local on-premise simulation mode.`
+          );
+        }
+        opts.onStatus(retryCount > 2 ? "offline" : "reconnecting");
+        // Calm exponential backoff: 2s -> 4s -> 8s -> 16s -> 30s
+        const delay = Math.min(2000 * 2 ** (retryCount - 1), 30000);
         reconnectTimer = setTimeout(open, delay);
       };
     } catch {
       opts.onStatus("offline");
-      reconnectTimer = setTimeout(open, 5000);
+      reconnectTimer = setTimeout(open, 30000);
     }
   };
 
