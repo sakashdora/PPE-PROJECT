@@ -140,9 +140,9 @@ function renderBackground(ctx: CanvasRenderingContext2D, W: number, H: number, t
   ctx.lineTo(W, scanY);
   ctx.stroke();
 
-  // REC dot (blinks every 25 ticks, Deep Jade for recording)
+  // REC dot (blinks every 25 ticks, Slate Connect for recording)
   if (Math.floor(tick / 25) % 2 === 0) {
-    ctx.fillStyle = "#1B8A5A";
+    ctx.fillStyle = "#4A7A9B";
     ctx.beginPath();
     ctx.arc(W - 14, 14, 3.5, 0, Math.PI * 2);
     ctx.fill();
@@ -220,7 +220,7 @@ export const StreamTile: React.FC<StreamTileProps> = ({
         });
         drawLabel(
           ctx,
-          `FLAME/SMOKE  ${conf}%  [P0-CRIT]`,
+          "🚨 FIRE HAZARD DETECTED",
           px,
           py,
           "#C1272D",
@@ -232,7 +232,7 @@ export const StreamTile: React.FC<StreamTileProps> = ({
           const fx = W * 0.46 + Math.sin(tick * 0.09 + i * 0.8) * 28 + i * 14;
           const fy = H * 0.58 - Math.abs(Math.sin(tick * 0.14 + i * 0.65)) * 32 - i * 4;
           const fr = 2.5 + Math.abs(Math.sin(tick * 0.18 + i)) * 3.5;
-          ctx.fillStyle = ["#C1272D", "#F2760C", "#681216", "#7E3902"][i % 4];
+          ctx.fillStyle = ["#C1272D", "#E8700A", "#681216", "#7E3902"][i % 4];
           ctx.beginPath();
           ctx.arc(fx, fy, fr, 0, Math.PI * 2);
           ctx.fill();
@@ -244,48 +244,32 @@ export const StreamTile: React.FC<StreamTileProps> = ({
         const pw = W * 0.2;
         const ph = H * 0.58;
 
-        // Worker bounding box (Warm Neutral / Copper accent)
-        drawBox(ctx, px, py, pw, ph, "#7A7368", { lineWidth: 1.5, fillAlpha: 0.04 });
-        drawLabel(ctx, "WORKER_04  0.94", px, py, "#2C2620", "#F3EFE6");
-
-        // Missing Hardhat Region (Safety Orange #F2760C)
-        const hx = px + pw * 0.1;
-        const hy = py + 2;
-        const hw = pw * 0.8;
-        const hh = ph * 0.22;
-        drawBox(ctx, hx, hy, hw, hh, "#F2760C", {
-          lineWidth: 1.5,
-          dash: [3, 2],
-          fillAlpha: 0.16,
-        });
-        drawLabel(ctx, `NO HELMET  ${conf}%`, hx, hy, "#F2760C", "#F3EFE6");
+        // Worker bounding box with missing hardhat warning pill
+        drawBox(ctx, px, py, pw, ph, "#E8700A", { lineWidth: 1.5, fillAlpha: 0.1 });
+        drawLabel(ctx, "⚠ MISSING HARDHAT", px, py, "#E8700A", "#F3EFE6");
 
         // Second worker — compliant
         const p2x = W * 0.56;
         const p2y = H * 0.22;
         const p2w = W * 0.18;
         const p2h = H * 0.5;
-        drawBox(ctx, p2x, p2y, p2w, p2h, "#7A7368", { lineWidth: 1.5, fillAlpha: 0.04 });
-        drawLabel(ctx, "WORKER_07  0.92", p2x, p2y, "#2C2620", "#F3EFE6");
-        drawLabel(ctx, "HARDHAT ✓  0.91", p2x + 2, p2y + 18, "#3E8E5A", "#F3EFE6");
+        drawBox(ctx, p2x, p2y, p2w, p2h, "#2E8B57", { lineWidth: 1.5, fillAlpha: 0.04 });
+        drawLabel(ctx, "✓ WORKER 07", p2x, p2y, "#211D17", "#F3EFE6");
       } else {
         // COMPLIANT: Full PPE pass
         const w1x = W * 0.28;
         const w1y = H * 0.18;
         const w1w = W * 0.19;
         const w1h = H * 0.56;
-        drawBox(ctx, w1x, w1y, w1w, w1h, "#7A7368", { lineWidth: 1.5, fillAlpha: 0.04 });
-        drawLabel(ctx, "WORKER_01  0.96", w1x, w1y, "#2C2620", "#F3EFE6");
-        drawLabel(ctx, "HELMET ✓", w1x + 2, w1y + 18, "#3E8E5A", "#F3EFE6");
-        drawLabel(ctx, "VEST ✓", w1x + 2, w1y + 34, "#3E8E5A", "#F3EFE6");
+        drawBox(ctx, w1x, w1y, w1w, w1h, "#2E8B57", { lineWidth: 1.5, fillAlpha: 0.04 });
+        drawLabel(ctx, "✓ WORKER 01", w1x, w1y, "#211D17", "#F3EFE6");
 
         const w2x = W * 0.56;
         const w2y = H * 0.22;
         const w2w = W * 0.18;
         const w2h = H * 0.5;
-        drawBox(ctx, w2x, w2y, w2w, w2h, "#7A7368", { lineWidth: 1.5, fillAlpha: 0.04 });
-        drawLabel(ctx, "WORKER_03  0.93", w2x, w2y, "#2C2620", "#F3EFE6");
-        drawLabel(ctx, "HARDHAT ✓", w2x + 2, w2y + 18, "#3E8E5A", "#F3EFE6");
+        drawBox(ctx, w2x, w2y, w2w, w2h, "#2E8B57", { lineWidth: 1.5, fillAlpha: 0.04 });
+        drawLabel(ctx, "✓ WORKER 03", w2x, w2y, "#211D17", "#F3EFE6");
       }
 
       animId = requestAnimationFrame(render);
@@ -323,8 +307,8 @@ export const StreamTile: React.FC<StreamTileProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="flex items-center gap-1 bg-jade/20 border border-jade px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-bold text-jade">
-            <span className="w-1.5 h-1.5 rounded-none bg-jade" />
+          <span className="flex items-center gap-1 bg-slate-connect-subtle border border-slate-connect px-1.5 py-0.5 rounded-sm text-[9px] font-mono font-bold text-slate-connect">
+            <span className="w-1.5 h-1.5 rounded-none bg-slate-connect" />
             LIVE
           </span>
           <span className="hidden sm:flex items-center gap-1 text-[9px] font-mono text-text-secondary bg-elevated px-1.5 py-0.5 rounded-sm border border-border">

@@ -25,11 +25,14 @@ import {
   Calendar,
 } from "lucide-react";
 
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+
 // Data for Sector Violations (strictly Forge palette)
 const SECTOR_DATA = [
   { sector: "Sector 1", name: "Loading Bay", count: 41, primary: "High-Vis Vest Breach", fill: "#C6752B" }, // Signal Copper
   { sector: "Sector 2", name: "Chemical Storage", count: 15, primary: "Zero Tolerance (Fire/Thermal)", fill: "#C1272D" }, // Critical
-  { sector: "Sector 3", name: "Assembly Line", count: 32, primary: "Smoking in Zone", fill: "#F2760C" }, // Warning
+  { sector: "Sector 3", name: "Assembly Line", count: 32, primary: "Smoking in Zone", fill: "#E8700A" }, // Warning
   { sector: "Sector 4", name: "Furnace Hall", count: 54, primary: "Missing Heat Gloves", fill: "#7A7368" }, // Neutral
 ];
 
@@ -88,6 +91,27 @@ const TrendCustomTooltip = ({ active, payload, label }: any) => {
 
 export default function ReportsPage() {
   const [selectedTimeframe, setSelectedTimeframe] = useState("Trailing 7 Days");
+  const kpiRef = React.useRef<(HTMLDivElement | null)[]>([]);
+  const chartsRef = React.useRef<(HTMLDivElement | null)[]>([]);
+
+  useGSAP(() => {
+    gsap.from(kpiRef.current, {
+      y: 20,
+      opacity: 0,
+      duration: 0.5,
+      stagger: 0.1,
+      ease: "power2.out",
+    });
+
+    gsap.from(chartsRef.current, {
+      y: 30,
+      opacity: 0,
+      duration: 0.6,
+      stagger: 0.15,
+      ease: "power3.out",
+      delay: 0.2,
+    });
+  }, []);
 
   return (
     <div className="space-y-6 pb-12">
@@ -119,7 +143,7 @@ export default function ReportsPage() {
 
       {/* Metric Cards Top Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-surface border border-border rounded-sm">
+        <div ref={(el) => { kpiRef.current[0] = el; }} className="p-4 bg-surface border border-border rounded-sm forge-surface-active">
           <div className="flex items-center justify-between text-[10px] font-mono text-text-secondary">
             <span className="uppercase font-bold tracking-wider">AGGREGATE PPE COMPLIANCE</span>
             <ShieldCheck className="w-4 h-4 text-safe" />
@@ -133,7 +157,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="p-4 bg-surface border border-border rounded-sm">
+        <div ref={(el) => { kpiRef.current[1] = el; }} className="p-4 bg-surface border border-border rounded-sm forge-surface-active">
           <div className="flex items-center justify-between text-[10px] font-mono text-text-secondary">
             <span className="uppercase font-bold tracking-wider">AVG ACKNOWLEDGMENT SLA</span>
             <CheckCircle className="w-4 h-4 text-copper" />
@@ -146,7 +170,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="p-4 bg-surface border border-border rounded-sm">
+        <div ref={(el) => { kpiRef.current[2] = el; }} className="p-4 bg-surface border border-border rounded-sm forge-surface-active">
           <div className="flex items-center justify-between text-[10px] font-mono text-text-secondary">
             <span className="uppercase font-bold tracking-wider">FIRE / SMOKE RECALL</span>
             <Flame className="w-4 h-4 text-critical" />
@@ -159,7 +183,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="p-4 bg-surface border border-border rounded-sm">
+        <div ref={(el) => { kpiRef.current[3] = el; }} className="p-4 bg-surface border border-border rounded-sm forge-surface-active">
           <div className="flex items-center justify-between text-[10px] font-mono text-text-secondary">
             <span className="uppercase font-bold tracking-wider">CORNER-CASE SUPPRESSION</span>
             <AlertOctagon className="w-4 h-4 text-warning" />
@@ -176,7 +200,7 @@ export default function ReportsPage() {
       {/* Main Charts Grid: Sector Violations & 7-Day Trend */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Interactive Sector Violations Bar Chart */}
-        <div className="p-5 bg-surface border border-border rounded-sm flex flex-col">
+        <div ref={(el) => { chartsRef.current[0] = el; }} className="p-5 bg-surface border border-border rounded-sm flex flex-col forge-surface-active">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider font-display">
@@ -220,7 +244,7 @@ export default function ReportsPage() {
         </div>
 
         {/* 7-Day Multi-Class Safety Trend Area Chart */}
-        <div className="p-5 bg-surface border border-border rounded-sm flex flex-col">
+        <div ref={(el) => { chartsRef.current[1] = el; }} className="p-5 bg-surface border border-border rounded-sm flex flex-col forge-surface-active">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider font-display">
@@ -230,7 +254,7 @@ export default function ReportsPage() {
                 Daily worker compliance rates for Helmet, Vest, Gloves & Boots
               </p>
             </div>
-            <span className="text-[9px] font-mono px-2 py-0.5 rounded-sm bg-safe/20 text-safe border border-safe">
+            <span className="text-[9px] font-mono px-2 py-0.5 rounded-sm bg-safe-bg text-safe border border-safe">
               Sustained 96%+
             </span>
           </div>
@@ -240,8 +264,8 @@ export default function ReportsPage() {
               <AreaChart data={TREND_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="helmetGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3E8E5A" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#3E8E5A" stopOpacity={0.0} />
+                    <stop offset="0%" stopColor="#2E8B57" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#2E8B57" stopOpacity={0.0} />
                   </linearGradient>
                   <linearGradient id="vestGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#C6752B" stopOpacity={0.3} />
@@ -253,9 +277,9 @@ export default function ReportsPage() {
                 <YAxis domain={[80, 100]} stroke="#A69C8C" fontSize={10} tickLine={false} />
                 <Tooltip content={<TrendCustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: "10px", paddingTop: "8px" }} />
-                <Area type="monotone" dataKey="helmet" name="Helmet" stroke="#3E8E5A" strokeWidth={2} fill="url(#helmetGrad)" />
+                <Area type="monotone" dataKey="helmet" name="Helmet" stroke="#2E8B57" strokeWidth={2} fill="url(#helmetGrad)" />
                 <Area type="monotone" dataKey="vest" name="Vest" stroke="#C6752B" strokeWidth={2} fill="url(#vestGrad)" />
-                <Area type="monotone" dataKey="gloves" name="Gloves" stroke="#F2760C" strokeWidth={1.5} fill="none" strokeDasharray="3 3" />
+                <Area type="monotone" dataKey="gloves" name="Gloves" stroke="#E8700A" strokeWidth={1.5} fill="none" strokeDasharray="3 3" />
                 <Area type="monotone" dataKey="boots" name="Boots" stroke="#7A7368" strokeWidth={1.5} fill="none" />
               </AreaChart>
             </ResponsiveContainer>
@@ -271,7 +295,7 @@ export default function ReportsPage() {
       {/* Secondary Row: Shift Incident Distribution & Equipment Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Shift Breakdown */}
-        <div className="p-5 bg-surface border border-border rounded-sm">
+        <div ref={(el) => { chartsRef.current[2] = el; }} className="p-5 bg-surface border border-border rounded-sm forge-surface-active">
           <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider font-display mb-4 flex items-center justify-between">
             <span>Shift Incident Distribution (Shift A, B, C)</span>
             <span className="text-[9px] text-text-secondary font-mono font-medium">Past 142 Shifts</span>
@@ -288,7 +312,7 @@ export default function ReportsPage() {
                 />
                 <Legend wrapperStyle={{ fontSize: "10px" }} />
                 <Bar dataKey="critical" name="Critical (Fire)" fill="#C1272D" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="warning" name="Warning (Smoking)" fill="#F2760C" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="warning" name="Warning (Smoking)" fill="#E8700A" radius={[2, 2, 0, 0]} />
                 <Bar dataKey="compliance" name="Compliance (PPE)" fill="#7A7368" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -296,7 +320,7 @@ export default function ReportsPage() {
         </div>
 
         {/* PPE Equipment Breakdown Grid */}
-        <div className="p-5 bg-surface border border-border rounded-sm flex flex-col justify-between">
+        <div ref={(el) => { chartsRef.current[3] = el; }} className="p-5 bg-surface border border-border rounded-sm flex flex-col justify-between forge-surface-active">
           <div>
             <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider font-display mb-4 flex items-center justify-between">
               <span>PPE Infraction Distribution</span>
@@ -337,7 +361,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Hackathon Jury Unit Economics Defense Card */}
-      <div className="p-6 bg-surface border border-copper rounded-sm relative overflow-hidden">
+      <div ref={(el) => { chartsRef.current[4] = el; }} className="p-6 bg-surface border border-copper rounded-sm relative overflow-hidden forge-surface-active">
         <div className="flex items-center gap-2 mb-3">
           <DollarSign className="w-5 h-5 text-copper" />
           <h3 className="text-base font-bold text-text-primary uppercase tracking-wider font-display">
@@ -354,7 +378,7 @@ export default function ReportsPage() {
             </p>
           </div>
 
-          <div className="p-4 bg-safe/15 border border-safe rounded-sm">
+          <div className="p-4 bg-safe-bg border border-safe rounded-sm">
             <div className="text-safe text-[9px] uppercase font-bold">CapEx Per Camera (ARGUS Edge)</div>
             <div className="text-2xl font-bold text-safe mt-1 font-display">₹3,200 ($38.50) / Cam</div>
             <p className="text-[9px] text-text-primary mt-1.5 leading-relaxed">
@@ -362,7 +386,7 @@ export default function ReportsPage() {
             </p>
           </div>
 
-          <div className="p-4 bg-critical/15 border border-critical rounded-sm">
+          <div className="p-4 bg-critical-bg border border-critical rounded-sm">
             <div className="text-critical text-[9px] uppercase font-bold">Cloud SaaS Alternative Cost</div>
             <div className="text-2xl font-bold text-critical mt-1 font-display">₹34,000 / Cam / Year</div>
             <p className="text-[9px] text-text-primary mt-1.5 leading-relaxed">

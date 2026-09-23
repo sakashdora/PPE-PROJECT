@@ -1,14 +1,75 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=DM+Serif+Display:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #16140F;
-  --foreground: #F3EFE6;
-  --status-strip-height: 36px;
-  --bottom-dock-height: 52px;
+:root, [data-theme="dark"] {
+  --base: #16140F;
+  --surface: #211D17;
+  --elevated: #2C2620;
+  --border: #3A332A;
+  --border-subtle: #2E2820;
+  --text-primary: #F3EFE6;
+  --text-secondary: #A69C8C;
+  --text-muted: #6B6358;
+  --brand-accent: #C6752B;
+  --brand-accent-hover: #B26521;
+  --brand-accent-subtle: rgba(198,117,43,0.12);
+  --slate-connect: #4A7A9B;
+  --slate-connect-subtle: rgba(74,122,155,0.12);
+  
+  --surface-warm: #241F18;
+  --elevated-warm: #302921;
+  --text-display: #F8F4EB;
+  --brand-glow: rgba(198,117,43,0.25);
+  --personality-rose: #7A4560;
+  --personality-rose-subtle: rgba(122,69,96,0.18);
+  
+  --critical: #C1272D;
+  --critical-bg: rgba(193,39,45,0.15);
+  --critical-dark: #681216;
+  --warning: #E8700A;
+  --warning-bg: rgba(232,112,10,0.15);
+  --warning-dark: #7E3902;
+  --compliance: #7A8194;
+  --compliance-bg: rgba(122,129,148,0.12);
+  --compliance-dark: #4A4D55;
+  --safe: #2E8B57;
+  --safe-bg: rgba(46,139,87,0.15);
+  --safe-dark: #1B4729;
+}
+
+[data-theme="light"] {
+  --base: #FAF8F5;
+  --surface: #F0ECE5;
+  --elevated: #FFFFFF;
+  --border: #DDD6CC;
+  --border-subtle: #E8E3DB;
+  --text-primary: #1C1915;
+  --text-secondary: #6B6358;
+  --text-muted: #A69C8C;
+  --brand-accent: #A8611F;
+  --brand-accent-hover: #8E5218;
+  --brand-accent-subtle: rgba(168,97,31,0.08);
+  --slate-connect: #3D6E8A;
+  --slate-connect-subtle: rgba(61,110,138,0.08);
+  
+  --surface-warm: #F0ECE5;
+  --elevated-warm: #FFFFFF;
+  --text-display: #1C1915;
+  --brand-glow: rgba(168,97,31,0.25);
+  --personality-rose: #9B5C7A;
+  --personality-rose-subtle: rgba(155,92,122,0.10);
+
+  --critical: #B12025;
+  --critical-bg: rgba(177,32,37,0.08);
+  --warning: #BE5A08;
+  --warning-bg: rgba(190,90,8,0.08);
+  --compliance: #5D6170;
+  --compliance-bg: rgba(93,97,112,0.08);
+  --safe: #206B42;
+  --safe-bg: rgba(32,107,66,0.08);
 }
 
 * {
@@ -20,8 +81,8 @@ html, body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
+  color: var(--text-primary);
+  background: var(--base);
   font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -34,15 +95,15 @@ body {
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #16140F;
+  background: var(--base);
 }
 ::-webkit-scrollbar-thumb {
-  background: #2C2620;
+  background: var(--elevated);
   border-radius: 2px;
-  border: 1px solid #3A332A;
+  border: 1px solid var(--border);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3A332A;
+  background: var(--border);
 }
 
 /* === HUD Corner Brackets (Signal Copper) === */
@@ -56,59 +117,80 @@ body {
 .hud-bracket.top-left {
   top: 4px;
   left: 4px;
-  border-top: 1.5px solid #C6752B;
-  border-left: 1.5px solid #C6752B;
+  border-top: 1.5px solid var(--brand-accent);
+  border-left: 1.5px solid var(--brand-accent);
 }
 .hud-bracket.top-right {
   top: 4px;
   right: 4px;
-  border-top: 1.5px solid #C6752B;
-  border-right: 1.5px solid #C6752B;
+  border-top: 1.5px solid var(--brand-accent);
+  border-right: 1.5px solid var(--brand-accent);
 }
 .hud-bracket.bottom-left {
   bottom: 4px;
   left: 4px;
-  border-bottom: 1.5px solid #C6752B;
-  border-left: 1.5px solid #C6752B;
+  border-bottom: 1.5px solid var(--brand-accent);
+  border-left: 1.5px solid var(--brand-accent);
 }
 .hud-bracket.bottom-right {
   bottom: 4px;
   right: 4px;
-  border-bottom: 1.5px solid #C6752B;
-  border-right: 1.5px solid #C6752B;
+  border-bottom: 1.5px solid var(--brand-accent);
+  border-right: 1.5px solid var(--brand-accent);
 }
 
 /* === Forge Solid Panels & Surfaces (NO Page-wide blur) === */
 .forge-surface {
-  background: #211D17;
-  border: 1px solid #3A332A;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.forge-surface-active {
+  background: var(--surface);
+  border: 1px solid var(--brand-accent);
 }
 
 .forge-elevated {
-  background: #2C2620;
-  border: 1px solid #3A332A;
+  background: var(--elevated);
+  border: 1px solid var(--border);
 }
 
-/* Sole Sanctioned Blur in the App: The Floating Bottom Dock */
+/* Section 4.6 Sanctioned Dock Glassmorphism: The Floating Bottom Navigation */
 .forge-dock {
-  background: rgba(44, 38, 32, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid #3A332A;
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
+  background: rgba(28, 24, 18, 0.55);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(198, 117, 43, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border-radius: 9999px;
+}
+
+.forge-dock:hover {
+  background: rgba(28, 24, 18, 0.65);
+  border-color: rgba(198, 117, 43, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 20px rgba(198, 117, 43, 0.08),
+    0 12px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: scale(1.01);
+  transition: all 0.2s ease-out;
 }
 
 /* Hard, high-contrast aviation alarm pulse for CRITICAL alerts */
 @keyframes criticalHardPulse {
   0%, 100% {
-    background-color: rgba(193, 39, 45, 0.22);
-    border-color: #C1272D;
-    color: #F3EFE6;
+    background-color: var(--critical-bg);
+    border-color: var(--critical);
+    color: var(--text-primary);
   }
   50% {
     background-color: transparent;
-    border-color: rgba(193, 39, 45, 0.4);
-    color: #A69C8C;
+    border-color: var(--critical-bg);
+    color: var(--text-secondary);
   }
 }
 .animate-critical-pulse {
@@ -138,9 +220,19 @@ body {
   font-family: 'Bricolage Grotesque', sans-serif;
   font-weight: 700;
 }
+.font-serif-hero {
+  font-family: 'DM Serif Display', serif;
+  font-weight: 400;
+}
 .font-sans-body {
   font-family: 'Hanken Grotesk', sans-serif;
 }
 .font-mono-data {
   font-family: 'JetBrains Mono', monospace;
+}
+
+/* Focus Utility */
+*:focus-visible {
+  outline: 2px solid var(--brand-accent) !important;
+  outline-offset: 2px !important;
 }

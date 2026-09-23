@@ -56,7 +56,7 @@ export const RadarSweep: React.FC<RadarSweepProps> = ({
           }}
         />
 
-        {/* Camera Blips (Deep Jade) */}
+        {/* Camera Blips (Slate Connect) */}
         {cameraBlips.map((blip) => {
           const rad = (blip.angle * Math.PI) / 180;
           const x = center + radius * blip.dist * Math.cos(rad);
@@ -69,15 +69,15 @@ export const RadarSweep: React.FC<RadarSweepProps> = ({
               style={{ left: x, top: y }}
             >
               <div className="relative flex items-center justify-center">
-                <span className="w-2.5 h-2.5 rounded-none bg-jade animate-ping opacity-60" />
-                <span className="absolute w-2 h-2 rounded-none bg-jade border border-border" />
+                <span className="w-2.5 h-2.5 rounded-none bg-slate-connect animate-ping opacity-60" />
+                <span className="absolute w-2 h-2 rounded-none bg-slate-connect border border-border" />
               </div>
 
               {/* Tooltip on hover */}
               <div className="absolute left-4 top-1/2 -translate-y-1/2 hidden group-hover:flex flex-col bg-elevated border border-border px-2 py-1 rounded-sm shadow-xl whitespace-nowrap text-[10px] pointer-events-none z-20">
                 <span className="font-bold text-text-primary">{blip.name}</span>
                 <span className="text-text-secondary">{blip.sector}</span>
-                <span className="text-jade font-semibold">● 28.5 FPS · Synchronized</span>
+                <span className="text-slate-connect font-semibold">● 28.5 FPS · Synchronized</span>
               </div>
             </div>
           );

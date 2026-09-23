@@ -8,7 +8,7 @@ interface GaugeDialProps {
   max: number;
   unit: string;
   subtext?: string;
-  color?: "copper" | "jade" | "safe" | "warning" | "critical" | "neutral";
+  color?: "copper" | "connect" | "jade" | "safe" | "warning" | "critical" | "neutral";
   size?: number;
 }
 
@@ -43,16 +43,20 @@ export const GaugeDial: React.FC<GaugeDialProps> = ({
       stroke: "#C6752B",
       text: "text-copper",
     },
+    connect: {
+      stroke: "#4A7A9B",
+      text: "text-slate-connect",
+    },
     jade: {
-      stroke: "#1B8A5A",
-      text: "text-jade",
+      stroke: "#4A7A9B",
+      text: "text-slate-connect",
     },
     safe: {
-      stroke: "#3E8E5A",
+      stroke: "#2E8B57",
       text: "text-safe",
     },
     warning: {
-      stroke: "#F2760C",
+      stroke: "#E8700A",
       text: "text-warning",
     },
     critical: {

@@ -31,7 +31,7 @@ export default function ZoneEditorPage({ params }: PageProps) {
       cameraId: cameraId,
       name: "Restricted Chemical Buffer",
       kind: "smoking_restricted",
-      color: "#f59e0b",
+      color: "#E8700A", // Warning
       active: true,
       polygon: [
         { x: 0.15, y: 0.2 },
@@ -45,7 +45,7 @@ export default function ZoneEditorPage({ params }: PageProps) {
       cameraId: cameraId,
       name: "Mandatory Hard-Hat Perimeter",
       kind: "ppe_required",
-      color: "#38bdf8",
+      color: "#2E8B57", // Safe
       active: true,
       polygon: [
         { x: 0.55, y: 0.15 },
@@ -87,12 +87,12 @@ export default function ZoneEditorPage({ params }: PageProps) {
       kind: newZoneKind,
       color:
         newZoneKind === "smoking_restricted"
-          ? "#f59e0b"
+          ? "#E8700A"
           : newZoneKind === "ppe_required"
-          ? "#38bdf8"
+          ? "#2E8B57"
           : newZoneKind === "hazard_high"
-          ? "#ef4444"
-          : "#64748b",
+          ? "#C1272D"
+          : "#4A7A9B",
       active: true,
       polygon: newPoints,
     };
@@ -120,21 +120,21 @@ export default function ZoneEditorPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-industrial-800">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Link
               href="/admin/cameras"
-              className="text-slate-400 hover:text-white flex items-center gap-1 text-xs font-mono"
+              className="text-text-secondary hover:text-text-primary flex items-center gap-1 text-xs font-mono"
             >
               <ArrowLeft className="w-3 h-3" /> Back to Cameras
             </Link>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
-            <Square className="w-6 h-6 text-amber-400" />
+          <h1 className="text-2xl font-bold font-display text-text-primary tracking-tight flex items-center gap-2.5">
+            <Square className="w-6 h-6 text-copper" />
             <span>Interactive SVG Zone Editor ({cameraId.toUpperCase()})</span>
           </h1>
-          <p className="text-xs text-slate-400 font-mono mt-0.5">
+          <p className="text-xs text-text-secondary font-mono mt-0.5">
             Define polygon zones invariant to camera resolution (normalized 0.0 - 1.0 coordinates)
           </p>
         </div>
@@ -142,15 +142,15 @@ export default function ZoneEditorPage({ params }: PageProps) {
         <button
           type="button"
           onClick={handleSaveToEdge}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-mono font-bold flex items-center gap-2 shadow"
+          className="px-4 py-2 bg-copper hover:bg-copper-hover text-base rounded-sm text-xs font-mono font-bold flex items-center gap-2 shadow transition-colors"
         >
           <Save className="w-4 h-4" />
-          <span>Publish Zones to Edge Worker</span>
+          <span>Publish Zones to Edge</span>
         </button>
       </div>
 
       {saveToast && (
-        <div className="p-3 bg-emerald-950 border border-emerald-600 rounded-lg text-xs font-mono text-emerald-300 flex items-center gap-2 animate-fadeIn">
+        <div className="p-3 bg-safe-bg border border-safe rounded-sm text-xs font-mono text-safe flex items-center gap-2">
           <CheckCircle className="w-4 h-4" />
           <span>Hot-reloaded zones published to Edge Node over /edge/config endpoint!</span>
         </div>
@@ -160,10 +160,10 @@ export default function ZoneEditorPage({ params }: PageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Interactive SVG Canvas */}
         <div className="lg:col-span-2 space-y-3">
-          <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border-2 border-industrial-700 shadow-2xl crt-grid">
+          <div className="relative w-full aspect-video bg-base rounded-sm overflow-hidden border border-border shadow-2xl crt-grid">
             {/* Background Grid & Surveillance Camera View Mock */}
             <div className="absolute inset-0 pointer-events-none opacity-40">
-              <div className="w-full h-full flex items-center justify-center font-mono text-xs text-slate-500">
+              <div className="w-full h-full flex items-center justify-center font-mono text-xs text-text-secondary">
                 [LIVE SURVEILLANCE FEED: {cameraId.toUpperCase()} — CLICK CANVAS TO PLACE POLYGON VERTICES]
               </div>
             </div>
@@ -206,7 +206,7 @@ export default function ZoneEditorPage({ params }: PageProps) {
                         cx={pt.x * 1000}
                         cy={pt.y * 600}
                         r={isSelected ? 5 : 3}
-                        fill="#ffffff"
+                        fill="#F3EFE6"
                         stroke={zone.color}
                         strokeWidth={2}
                       />
@@ -223,7 +223,7 @@ export default function ZoneEditorPage({ params }: PageProps) {
                       .map((pt) => `${pt.x * 1000},${pt.y * 600}`)
                       .join(" ")}
                     fill="none"
-                    stroke="#ef4444"
+                    stroke="#C1272D"
                     strokeWidth={2}
                     strokeDasharray="4,4"
                   />
@@ -233,7 +233,7 @@ export default function ZoneEditorPage({ params }: PageProps) {
                       cx={pt.x * 1000}
                       cy={pt.y * 600}
                       r={5}
-                      fill="#ef4444"
+                      fill="#C1272D"
                     />
                   ))}
                 </g>
@@ -242,14 +242,14 @@ export default function ZoneEditorPage({ params }: PageProps) {
 
             {/* Drawing Mode Indicator */}
             {isDrawing && (
-              <div className="absolute top-3 left-3 bg-red-600/90 text-white font-mono text-xs px-3 py-1 rounded shadow animate-pulse">
+              <div className="absolute top-3 left-3 bg-critical-bg border border-critical text-critical font-mono text-xs px-3 py-1 rounded-sm shadow animate-pulse">
                 DRAWING ACTIVE: Click to add vertices ({newPoints.length} points placed)
               </div>
             )}
           </div>
 
-          <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-            <span>Click vertices sequentially to build polygon boundary. Minimum 3 points required.</span>
+          <div className="flex items-center justify-between text-xs font-mono text-text-secondary">
+            <span>Click vertices sequentially to build boundary. Min 3 points.</span>
             {isDrawing ? (
               <div className="flex gap-2">
                 <button
@@ -258,7 +258,7 @@ export default function ZoneEditorPage({ params }: PageProps) {
                     setIsDrawing(false);
                     setNewPoints([]);
                   }}
-                  className="px-3 py-1 bg-industrial-800 text-slate-300 rounded hover:text-white"
+                  className="px-3 py-1.5 bg-elevated text-text-secondary rounded-sm border border-border hover:text-text-primary transition-colors"
                 >
                   Cancel
                 </button>
@@ -266,7 +266,7 @@ export default function ZoneEditorPage({ params }: PageProps) {
                   type="button"
                   disabled={newPoints.length < 3}
                   onClick={handleFinishDrawing}
-                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold rounded"
+                  className="px-3 py-1.5 bg-safe hover:bg-safe/80 disabled:opacity-40 text-base font-bold rounded-sm transition-colors"
                 >
                   Complete Polygon ({newPoints.length})
                 </button>
@@ -275,7 +275,7 @@ export default function ZoneEditorPage({ params }: PageProps) {
               <button
                 type="button"
                 onClick={() => setIsDrawing(true)}
-                className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded flex items-center gap-1.5"
+                className="px-3 py-1.5 bg-brand-accent hover:opacity-80 text-white font-bold rounded-sm flex items-center gap-1.5 transition-opacity"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Draw New Zone</span>
@@ -286,8 +286,8 @@ export default function ZoneEditorPage({ params }: PageProps) {
 
         {/* Sidebar Zone Configuration */}
         <div className="space-y-4">
-          <div className="p-4 bg-industrial-900 border border-industrial-800 rounded-xl font-mono text-xs space-y-4">
-            <h3 className="font-bold text-white uppercase tracking-wider pb-2 border-b border-industrial-800">
+          <div className="p-4 bg-surface border border-border rounded-sm font-mono text-xs space-y-4">
+            <h3 className="font-bold text-text-primary uppercase tracking-wider pb-2 border-b border-border">
               Configured Zones on {cameraId.toUpperCase()}
             </h3>
 
@@ -296,20 +296,20 @@ export default function ZoneEditorPage({ params }: PageProps) {
                 <div
                   key={zone.id}
                   onClick={() => setSelectedZoneId(zone.id)}
-                  className={`p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
+                  className={`p-3 rounded-sm border cursor-pointer transition-all flex items-center justify-between ${
                     selectedZoneId === zone.id
-                      ? "bg-industrial-850 border-white/40 shadow"
-                      : "bg-industrial-950 border-industrial-800 hover:border-industrial-700"
+                      ? "bg-elevated border-copper shadow"
+                      : "bg-surface border-border hover:border-text-secondary"
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <span
-                      className="w-3 h-3 rounded-full"
+                      className="w-3 h-3 rounded-none border border-border"
                       style={{ backgroundColor: zone.color }}
                     />
                     <div>
-                      <div className="font-bold text-slate-200">{zone.name}</div>
-                      <div className="text-3xs text-slate-500 uppercase">
+                      <div className="font-bold text-text-primary">{zone.name}</div>
+                      <div className="text-3xs text-text-secondary uppercase">
                         {zone.kind.replace("_", " ")} ({zone.polygon.length} points)
                       </div>
                     </div>
@@ -321,7 +321,7 @@ export default function ZoneEditorPage({ params }: PageProps) {
                       e.stopPropagation();
                       handleDeleteZone(zone.id);
                     }}
-                    className="text-slate-500 hover:text-red-400 p-1"
+                    className="text-text-secondary hover:text-critical p-1 transition-colors"
                     title="Delete Zone"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -332,18 +332,18 @@ export default function ZoneEditorPage({ params }: PageProps) {
 
             {/* Selected Zone Properties */}
             {selectedZone && (
-              <div className="pt-3 border-t border-industrial-800 space-y-2">
-                <div className="text-slate-400 font-bold">Selected Zone Rules:</div>
-                <div className="p-2.5 bg-black/40 border border-industrial-800 rounded text-2xs space-y-1">
+              <div className="pt-3 border-t border-border space-y-2">
+                <div className="text-text-secondary font-bold">Selected Zone Rules:</div>
+                <div className="p-2.5 bg-base border border-border rounded-sm text-2xs space-y-1">
                   <div>
-                    <span className="text-slate-500">TYPE: </span>
-                    <span className="text-amber-300 font-bold uppercase">{selectedZone.kind}</span>
+                    <span className="text-text-secondary">TYPE: </span>
+                    <span className="text-copper font-bold uppercase">{selectedZone.kind}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500">POLYGON POINTS: </span>
-                    <span className="text-slate-300">{selectedZone.polygon.length} vertices</span>
+                    <span className="text-text-secondary">POLYGON POINTS: </span>
+                    <span className="text-text-primary">{selectedZone.polygon.length} vertices</span>
                   </div>
-                  <div className="text-slate-400 pt-1 border-t border-white/5">
+                  <div className="text-text-secondary pt-1 mt-1 border-t border-border">
                     {selectedZone.kind === "smoking_restricted" &&
                       "Smoking events trigger supervisor WARNING only when detected inside this polygon boundary."}
                     {selectedZone.kind === "ppe_required" &&

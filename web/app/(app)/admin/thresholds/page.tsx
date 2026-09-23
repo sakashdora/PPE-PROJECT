@@ -61,14 +61,14 @@ export default function ThresholdsAdminPage() {
       </div>
 
       {saveToast && (
-        <div className="p-3 bg-jade/20 border border-jade rounded-sm text-xs font-mono text-jade flex items-center gap-2">
-          <CheckCircle className="w-4 h-4" />
+        <div className="p-3 bg-safe-bg border border-safe rounded-sm text-xs font-mono text-safe flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 text-safe" />
           <span>New threshold values and voter parameters published to edge runtime!</span>
         </div>
       )}
 
       {/* Safety Critical Risk Warning Banner */}
-      <div className="p-4 bg-warning/15 border border-warning rounded-sm text-xs font-mono text-text-primary flex items-start gap-3">
+      <div className="p-4 bg-warning-bg border border-warning rounded-sm text-xs font-mono text-text-primary flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
         <div className="space-y-1">
           <div className="font-bold text-warning uppercase">

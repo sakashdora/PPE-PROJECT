@@ -67,12 +67,12 @@ export const ArgusEyeLogo: React.FC<ArgusEyeLogoProps> = ({
           xmlns="http://www.w3.org/2000/svg"
         >
           {/* Outer Rotating Aperture Ring */}
-          <g className="origin-center animate-spin-slow">
+          <g className="origin-center">
             <circle
               cx="50"
               cy="50"
               r="46"
-              stroke="rgba(18, 212, 176, 0.35)"
+              stroke="rgba(198, 117, 43, 0.35)"
               strokeWidth="1.5"
               strokeDasharray="4 6"
             />
@@ -80,32 +80,32 @@ export const ArgusEyeLogo: React.FC<ArgusEyeLogoProps> = ({
               cx="50"
               cy="50"
               r="41"
-              stroke="rgba(124, 92, 230, 0.3)"
+              stroke="rgba(74, 122, 155, 0.3)"
               strokeWidth="1"
               strokeDasharray="16 28"
             />
             {/* Tech tick marks */}
-            <line x1="50" y1="2" x2="50" y2="6" stroke="#12d4b0" strokeWidth="2" />
-            <line x1="50" y1="94" x2="50" y2="98" stroke="#12d4b0" strokeWidth="2" />
-            <line x1="2" y1="50" x2="6" y2="50" stroke="#12d4b0" strokeWidth="2" />
-            <line x1="94" y1="50" x2="98" y2="50" stroke="#12d4b0" strokeWidth="2" />
+            <line x1="50" y1="2" x2="50" y2="6" stroke="#C6752B" strokeWidth="2" />
+            <line x1="50" y1="94" x2="50" y2="98" stroke="#C6752B" strokeWidth="2" />
+            <line x1="2" y1="50" x2="6" y2="50" stroke="#C6752B" strokeWidth="2" />
+            <line x1="94" y1="50" x2="98" y2="50" stroke="#C6752B" strokeWidth="2" />
           </g>
 
           {/* Eye Almond Contour */}
           <path
             d="M 12 50 C 26 26, 74 26, 88 50 C 74 74, 26 74, 12 50 Z"
-            stroke="rgba(18, 212, 176, 0.7)"
+            stroke="rgba(198, 117, 43, 0.8)"
             strokeWidth="2.5"
-            fill="rgba(11, 15, 25, 0.85)"
+            fill="#211D17"
           />
 
           {/* Inner Glowing Iris */}
           <defs>
             <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#12d4b0" stopOpacity="1" />
-              <stop offset="55%" stopColor="#0ea88c" stopOpacity="0.9" />
-              <stop offset="85%" stopColor="#7c5ce6" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#171d2e" stopOpacity="1" />
+              <stop offset="0%" stopColor="#C6752B" stopOpacity="1" />
+              <stop offset="55%" stopColor="#B26521" stopOpacity="0.9" />
+              <stop offset="85%" stopColor="#4A7A9B" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#16140F" stopOpacity="1" />
             </radialGradient>
             <filter id="irisGlowFilter" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="3" result="blur" />
@@ -126,7 +126,7 @@ export const ArgusEyeLogo: React.FC<ArgusEyeLogoProps> = ({
             cx="50"
             cy="50"
             r="15"
-            stroke="rgba(255, 255, 255, 0.35)"
+            stroke="rgba(243, 239, 230, 0.35)"
             strokeWidth="0.75"
             strokeDasharray="2 3"
           />
@@ -134,7 +134,7 @@ export const ArgusEyeLogo: React.FC<ArgusEyeLogoProps> = ({
 
         {/* Interactive Pupil tracking mouse */}
         <motion.div
-          className="absolute w-[14px] h-[14px] rounded-full bg-[#070a14] border border-cyan-400 shadow-[0_0_8px_rgba(18,212,176,0.9)] flex items-center justify-center pointer-events-none"
+          className="absolute w-[14px] h-[14px] rounded-full bg-[#16140F] border border-copper shadow-[0_0_8px_rgba(198,117,43,0.9)] flex items-center justify-center pointer-events-none"
           style={{
             x: pupilX,
             y: pupilY,
@@ -148,11 +148,11 @@ export const ArgusEyeLogo: React.FC<ArgusEyeLogoProps> = ({
       {/* Brand Text */}
       {showText && (
         <div className="leading-tight">
-          <div className="font-display font-black text-sm tracking-[0.08em] uppercase text-white flex items-center gap-1.5">
+          <div className="font-display font-black text-sm tracking-[0.08em] uppercase text-text-primary flex items-center gap-1.5">
             <span>ARGUS</span>
-            <span className="text-cyan-400 font-extrabold">AI</span>
+            <span className="text-copper font-extrabold">AI</span>
           </div>
-          <div className="font-sans text-[9px] font-medium tracking-[0.08em] text-slate-400 uppercase">
+          <div className="font-sans text-[9px] font-medium tracking-[0.08em] text-text-secondary uppercase">
             {subtitle}
           </div>
         </div>

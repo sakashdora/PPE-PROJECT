@@ -138,7 +138,7 @@ export default function CopilotPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] bg-surface border border-border rounded-sm overflow-hidden select-none">
+    <div className="flex flex-col h-[calc(100vh-120px)] w-full max-w-4xl mx-auto bg-surface border border-border rounded-sm overflow-hidden select-none">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 bg-surface border-b border-border">
         <div className="flex items-center gap-3">
@@ -148,7 +148,7 @@ export default function CopilotPage() {
           <div>
             <div className="font-bold font-display text-text-primary text-sm flex items-center gap-2">
               <span>ARGUS AI Safety Intelligence Copilot</span>
-              <span className="text-3xs font-mono px-1.5 py-0.5 rounded-sm bg-jade/20 text-jade border border-jade">
+              <span className="text-3xs font-mono px-1.5 py-0.5 rounded-sm bg-slate-connect-subtle text-slate-connect border border-slate-connect">
                 DETERMINISTIC FALLBACK ACTIVE
               </span>
             </div>
@@ -205,10 +205,10 @@ export default function CopilotPage() {
               )}
 
               <div
-                className={`max-w-[85%] rounded-sm p-4 leading-relaxed ${
+                className={`max-w-[85%] rounded-sm p-4 leading-relaxed font-mono ${
                   isAssistant
                     ? "bg-surface border border-border text-text-primary"
-                    : "bg-copper/15 border border-copper text-text-primary"
+                    : "bg-elevated border border-copper text-copper font-bold"
                 }`}
               >
                 <div className="flex items-center justify-between gap-4 mb-2 pb-1.5 border-b border-border text-3xs text-text-secondary">
@@ -220,9 +220,10 @@ export default function CopilotPage() {
 
                 <div className="space-y-2 whitespace-pre-wrap leading-relaxed text-2xs font-mono">
                   {msg.content || (
-                    <span className="text-text-secondary animate-pulse">
-                      Analyzing edge safety outbox and computing response...
-                    </span>
+                    <div className="flex items-center gap-2 py-1 text-slate-connect">
+                      <div className="forge-loader" />
+                      <span className="text-text-secondary text-3xs ml-1">Analyzing edge telemetry...</span>
+                    </div>
                   )}
                 </div>
 

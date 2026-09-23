@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { TopStatusStrip } from "@/components/TopStatusStrip";
 import { BottomDock } from "@/components/BottomDock";
 import { AudioUnlockGateModal } from "@/components/AlarmController";
-import { CopilotModal } from "@/components/CopilotModal";
 import { useAlertsStore } from "@/features/alerts/alerts.store";
 import { connectAlerts } from "@/realtime/wsClient";
 
@@ -20,8 +19,6 @@ export default function AppLayout({
   const upsert = useAlertsStore((s) => s.upsert);
   const setConn = useAlertsStore((s) => s.setConn);
   const setSeq = useAlertsStore((s) => s.setSeq);
-
-  const [copilotOpen, setCopilotOpen] = useState(false);
 
   useEffect(() => {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
@@ -41,11 +38,8 @@ export default function AppLayout({
       {/* Audio Autoplay Modal (portal) */}
       <AudioUnlockGateModal />
 
-      {/* Floating Copilot Modal */}
-      <CopilotModal isOpen={copilotOpen} onClose={() => setCopilotOpen(false)} />
-
       {/* Unified Single-line Top Status Strip */}
-      <TopStatusStrip onOpenCopilot={() => setCopilotOpen(true)} />
+      <TopStatusStrip />
 
       {/* Main Content Area */}
       {isWallPage ? (
@@ -59,7 +53,7 @@ export default function AppLayout({
       )}
 
       {/* Floating Bottom Dock (Sanctioned backdrop-blur navigation) */}
-      <BottomDock onOpenCopilot={() => setCopilotOpen(true)} />
+      <BottomDock />
     </div>
   );
 }

@@ -80,7 +80,7 @@ export const AlertCard: React.FC<AlertCardProps> = ({
           }
         }}
         className={`p-2.5 rounded-sm border text-xs cursor-pointer transition-colors hover:bg-elevated bg-surface border-border group ${
-          isCritical && isOpen ? "border-critical bg-critical/15 animate-critical-pulse" : ""
+          isCritical && isOpen ? "border-critical bg-critical-bg animate-critical-pulse" : ""
         }`}
       >
         <div className="flex items-center justify-between gap-2 mb-1">
@@ -99,6 +99,12 @@ export const AlertCard: React.FC<AlertCardProps> = ({
     );
   }
 
+  const borderLeftClass = isCritical
+    ? "border-l-4 border-l-critical"
+    : alert.severity === "WARNING"
+    ? "border-l-4 border-l-warning"
+    : "border-l-4 border-l-safe";
+
   return (
     <div
       role="button"
@@ -110,8 +116,8 @@ export const AlertCard: React.FC<AlertCardProps> = ({
           onInspect?.(alert.id);
         }
       }}
-      className={`rounded-sm border p-4 sm:p-5 transition-colors cursor-pointer bg-surface hover:border-copper ${
-        isCritical && isOpen ? "border-critical bg-critical/15 animate-critical-pulse" : "border-border"
+      className={`rounded-sm border p-4 sm:p-5 transition-colors cursor-pointer bg-surface hover:border-copper ${borderLeftClass} ${
+        isCritical && isOpen ? "border-critical bg-critical-bg animate-critical-pulse" : "border-border"
       }`}
     >
       {/* Top Header: Badge, Status Chip, Time */}
@@ -131,7 +137,7 @@ export const AlertCard: React.FC<AlertCardProps> = ({
                 : "bg-safe text-text-primary border-safe"
             }`}
           >
-            {alert.status.replace("_", " ")}
+            {isOpen && isCritical ? "CAS LATCHED" : alert.status.replace("_", " ")}
           </span>
         </div>
 
@@ -147,10 +153,21 @@ export const AlertCard: React.FC<AlertCardProps> = ({
           {isCritical && <Flame className="w-4 h-4 text-critical shrink-0" />}
           {alert.type === "missing_ppe" ? (
             <span>
-              {t.missing_prefix} {alert.items.map((i) => i.replace("no_", "")).join(", ").toUpperCase()}
+              Missing {alert.items.map((i) => {
+                const raw = i.replace("no_", "").replace(/_/g, " ").toLowerCase();
+                if (raw.includes("hardhat") || raw.includes("helmet")) return "Hardhat";
+                if (raw.includes("vest")) return "High-Vis Vest";
+                if (raw.includes("gloves")) return "Thermal Gloves";
+                if (raw.includes("boots")) return "Safety Boots";
+                return raw.charAt(0).toUpperCase() + raw.slice(1);
+              }).join(" & ")} — {alert.sector}
             </span>
+          ) : alert.type === "fire" || alert.type === "smoke" ? (
+            <span>Fire & Thermal Hazard — {alert.sector}</span>
+          ) : alert.type === "smoking" ? (
+            <span>Restricted Ignition Breach — {alert.sector}</span>
           ) : (
-            <span>{alert.type.toUpperCase()}: {alert.items.join(", ").toUpperCase()}</span>
+            <span>{String(alert.type).replace(/_/g, " ").toUpperCase()} — {alert.sector}</span>
           )}
         </h3>
 

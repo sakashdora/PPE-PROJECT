@@ -4,14 +4,10 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAlertsStore } from "@/features/alerts/alerts.store";
 import { selectUnackedCritical } from "@/features/alerts/selectors";
-import { Shield, AlertTriangle, ChevronRight, Activity, Volume2, VolumeX, Sparkles } from "lucide-react";
+import { Shield, AlertTriangle, ChevronRight, Activity, Volume2, VolumeX, Sparkles, Settings, User } from "lucide-react";
 import { audioController } from "@/lib/audio";
 
-interface TopStatusStripProps {
-  onOpenCopilot?: () => void;
-}
-
-export const TopStatusStrip: React.FC<TopStatusStripProps> = ({ onOpenCopilot }) => {
+export const TopStatusStrip: React.FC = () => {
   const byId = useAlertsStore((s) => s.byId);
   const conn = useAlertsStore((s) => s.conn);
   const cursor = useAlertsStore((s) => s.cursor);
@@ -55,15 +51,18 @@ export const TopStatusStrip: React.FC<TopStatusStripProps> = ({ onOpenCopilot })
     setMuted(next);
   };
 
+  const audioUnlocked = useAlertsStore((s) => s.audioUnlocked);
+  const setAudioUnlocked = useAlertsStore((s) => s.setAudioUnlocked);
+
   return (
     <header className="w-full h-9 bg-surface border-b border-border flex items-center justify-between px-3 text-xs select-none z-40 relative">
       {/* Left: Brand Identity & Active Facility Indicator */}
       <div className="flex items-center gap-3 shrink-0">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-4 h-4 bg-copper flex items-center justify-center rounded-sm">
+          <div className="w-4 h-4 bg-brand-accent flex items-center justify-center rounded-sm">
             <div className="w-1.5 h-1.5 bg-base" />
           </div>
-          <span className="font-display font-bold text-text-primary tracking-wider text-xs uppercase group-hover:text-copper transition-colors">
+          <span className="font-display font-bold text-text-primary tracking-wider text-xs uppercase group-hover:text-brand-accent transition-colors">
             ARGUS AI
           </span>
         </Link>
@@ -71,14 +70,14 @@ export const TopStatusStrip: React.FC<TopStatusStripProps> = ({ onOpenCopilot })
         <div className="hidden sm:flex items-center gap-1.5 text-2xs font-mono text-text-secondary">
           <span className="text-text-primary font-semibold">FACILITY 04</span>
           <span>•</span>
-          <span className="text-jade">EDGE CLUSTER 01</span>
+          <span className="text-slate-connect font-semibold">EDGE CLUSTER 01</span>
         </div>
       </div>
 
-      {/* Center: Single-line Status / Alert Notification (Condenses in place, NO vertical stacking) */}
+      {/* Center: Single-line Status / Alert Notification (In-place replacement, NO vertical stacking) */}
       <div className="flex-1 max-w-2xl mx-4 overflow-hidden text-center flex items-center justify-center">
         {activeCritical ? (
-          <div className="flex items-center gap-2.5 px-3 py-0.5 bg-critical/20 border border-critical rounded-sm text-text-primary text-2xs font-mono animate-critical-pulse">
+          <div className="flex items-center gap-2.5 px-3 py-0.5 bg-critical-bg border border-critical rounded-sm text-text-primary text-2xs font-mono animate-critical-pulse">
             <AlertTriangle className="w-3 h-3 text-critical shrink-0" />
             <span className="font-bold text-critical uppercase">CRITICAL HAZARD:</span>
             <span className="truncate">
@@ -93,17 +92,15 @@ export const TopStatusStrip: React.FC<TopStatusStripProps> = ({ onOpenCopilot })
             </Link>
           </div>
         ) : (
-          <div className="flex items-center gap-3 text-2xs font-mono text-text-secondary truncate">
-            <span className="flex items-center gap-1 text-jade">
-              <span className="w-1.5 h-1.5 rounded-full bg-jade" />
-              <span>3 NODES SYNCED</span>
+          <div className="flex items-center gap-2 text-2xs font-mono text-text-secondary truncate">
+            <span className="flex items-center gap-1 text-slate-connect">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-connect" />
+              <span className="font-bold">4 Cameras Online</span>
             </span>
             <span className="text-border">•</span>
-            <span>CAS v2 CONCURRENCY ARMED</span>
+            <span className="text-text-secondary">WS Live</span>
             <span className="text-border">•</span>
-            <span className="hidden md:inline">MONOTONIC SEQ: #{cursor ?? 0}</span>
-            <span className="text-border hidden md:inline">•</span>
-            <span className="hidden md:inline text-text-primary">TEMPORAL VOTING 8/10 PPE</span>
+            <span className="text-text-primary font-medium">System Armed</span>
           </div>
         )}
       </div>
@@ -115,7 +112,7 @@ export const TopStatusStrip: React.FC<TopStatusStripProps> = ({ onOpenCopilot })
           <span
             className={`w-1.5 h-1.5 rounded-full ${
               conn === "live"
-                ? "bg-jade"
+                ? "bg-slate-connect"
                 : conn === "connecting" || conn === "reconnecting"
                 ? "bg-warning"
                 : "bg-critical"
@@ -124,34 +121,52 @@ export const TopStatusStrip: React.FC<TopStatusStripProps> = ({ onOpenCopilot })
           <span className="text-text-secondary hidden sm:inline">
             {conn === "live" ? "WS ONLINE" : conn === "connecting" || conn === "reconnecting" ? "SYNCING" : "OFFLINE"}
           </span>
-          <span className="text-telemetry font-mono">{latency}ms</span>
+          <span className="text-text-secondary font-mono">{latency}ms</span>
         </div>
 
         <span className="text-border">|</span>
 
-        {/* Audio Mute Controller */}
-        <button
-          onClick={handleMuteToggle}
-          title={muted ? "Unmute Physical Siren" : "Mute Siren"}
-          className="text-text-secondary hover:text-text-primary transition-colors p-1"
-        >
-          {muted ? (
-            <VolumeX className="w-3.5 h-3.5 text-warning" />
-          ) : (
-            <Volume2 className="w-3.5 h-3.5 text-jade" />
-          )}
-        </button>
-
-        {/* Ask Copilot quick link if handler provided */}
-        {onOpenCopilot && (
+        {/* Audio Siren Controller (Inline Arm / Mute) */}
+        {!audioUnlocked ? (
           <button
-            onClick={onOpenCopilot}
-            className="hidden lg:flex items-center gap-1 px-2 py-0.5 bg-elevated hover:bg-copper/20 hover:border-copper border border-border rounded-sm text-text-primary text-2xs transition-colors"
+            onClick={() => setAudioUnlocked(true)}
+            className="px-2 py-0.5 bg-warning text-base font-bold text-[10px] rounded-sm flex items-center gap-1 transition-transform hover:scale-105"
+            title="Click to enable browser siren audio"
           >
-            <Sparkles className="w-3 h-3 text-copper" />
-            <span>COPILOT</span>
+            <VolumeX className="w-3 h-3" />
+            <span>ARM SIREN</span>
+          </button>
+        ) : (
+          <button
+            onClick={handleMuteToggle}
+            title={muted ? "Unmute Siren" : "Mute Siren"}
+            className="text-text-secondary hover:text-text-primary transition-colors p-1"
+          >
+            {muted ? (
+              <VolumeX className="w-3.5 h-3.5 text-warning" />
+            ) : (
+              <Volume2 className="w-3.5 h-3.5 text-slate-connect" />
+            )}
           </button>
         )}
+        
+        <span className="text-border">|</span>
+
+        <Link
+          href="/settings"
+          className="text-text-secondary hover:text-brand-accent transition-colors p-1"
+          title="Settings"
+        >
+          <Settings className="w-4 h-4" />
+        </Link>
+        <Link
+          href="/profile"
+          className="text-text-secondary hover:text-brand-accent transition-colors p-1"
+          title="Profile"
+        >
+          <User className="w-4 h-4" />
+        </Link>
+
       </div>
     </header>
   );

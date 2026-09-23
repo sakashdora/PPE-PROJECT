@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GSAPInitializer } from "@/components/GSAPInitializer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,8 +14,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark h-full">
-      <body className="h-full bg-industrial-950 text-slate-100 antialiased selection:bg-blue-600 selection:text-white overflow-hidden">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                let theme = localStorage.getItem('argus-theme');
+                if (!theme) {
+                  theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.dataset.theme = theme;
+                if (theme === 'dark') {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
+      <body className="h-full bg-base text-text-primary antialiased selection:bg-brand-accent selection:text-white overflow-hidden">
+        <GSAPInitializer />
         {children}
       </body>
     </html>

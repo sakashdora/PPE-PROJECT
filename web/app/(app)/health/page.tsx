@@ -36,8 +36,8 @@ export default function HealthPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-jade/20 border border-jade text-jade rounded-sm font-bold font-mono text-[10px] flex items-center gap-2">
-            <span className="w-2 h-2 rounded-none bg-jade animate-pulse" />
+          <span className="px-3 py-1 bg-slate-connect-subtle border border-slate-connect text-slate-connect rounded-sm font-bold font-mono text-[10px] flex items-center gap-2">
+            <span className="w-2 h-2 rounded-none bg-slate-connect animate-pulse" />
             <span>EDGE CLUSTER OPERATIONAL</span>
           </span>
         </div>
@@ -61,7 +61,7 @@ export default function HealthPage() {
           </div>
 
           <div className="flex items-center gap-3 text-[10px] text-text-secondary font-mono">
-            <span className="flex items-center gap-1 text-jade">
+            <span className="flex items-center gap-1 text-slate-connect">
               <Wifi className="w-3.5 h-3.5" />
               <span>LAN Zero-Cloud Mode Active</span>
             </span>
@@ -77,7 +77,7 @@ export default function HealthPage() {
             value={59.4}
             max={60}
             unit="FPS"
-            color="jade"
+            color="connect"
             subtext="~14.8 FPS per optical stream (4 active)"
           />
 
@@ -127,13 +127,13 @@ export default function HealthPage() {
           <div className="p-3 bg-base border border-border rounded-sm">
             <div className="flex justify-between text-text-secondary mb-1">
               <span className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-jade" />
+                <Clock className="w-3.5 h-3.5 text-slate-connect" />
                 <span>SQLite Outbox Buffer</span>
               </span>
-              <span className="font-bold text-jade">0 Pending Sync (Real-Time ACK)</span>
+              <span className="font-bold text-slate-connect">0 Pending Sync (Real-Time ACK)</span>
             </div>
             <div className="w-full bg-surface border border-border h-2 rounded-sm overflow-hidden">
-              <div className="bg-jade h-full w-[4%]" />
+              <div className="bg-slate-connect h-full w-[4%]" />
             </div>
           </div>
         </div>
@@ -148,7 +148,7 @@ export default function HealthPage() {
               <Radio className="w-4 h-4 text-copper" />
               <span>Edge Sensor Radar Matrix</span>
             </h3>
-            <span className="text-[9px] font-mono px-2 py-0.5 rounded-sm bg-jade/20 text-jade border border-jade">
+            <span className="text-[9px] font-mono px-2 py-0.5 rounded-sm bg-slate-connect-subtle text-slate-connect border border-slate-connect">
               ALL STREAMS LIVE
             </span>
           </div>
@@ -178,7 +178,7 @@ export default function HealthPage() {
               </div>
 
               <div className="p-3 bg-base border border-border rounded-sm flex items-start gap-3">
-                <span className="px-2 py-0.5 rounded-sm bg-jade/20 text-jade border border-jade font-bold text-[9px] shrink-0 mt-0.5">
+                <span className="px-2 py-0.5 rounded-sm bg-slate-connect-subtle text-slate-connect border border-slate-connect font-bold text-[9px] shrink-0 mt-0.5">
                   INFERENCE
                 </span>
                 <div>
@@ -190,7 +190,7 @@ export default function HealthPage() {
               </div>
 
               <div className="p-3 bg-base border border-border rounded-sm flex items-start gap-3">
-                <span className="px-2 py-0.5 rounded-sm bg-warning/20 text-warning border border-warning font-bold text-[9px] shrink-0 mt-0.5">
+                <span className="px-2 py-0.5 rounded-sm bg-warning-bg text-warning border border-warning font-bold text-[9px] shrink-0 mt-0.5">
                   VOTING
                 </span>
                 <div>
@@ -202,7 +202,7 @@ export default function HealthPage() {
               </div>
 
               <div className="p-3 bg-base border border-border rounded-sm flex items-start gap-3">
-                <span className="px-2 py-0.5 rounded-sm bg-critical/20 text-critical border border-critical font-bold text-[9px] shrink-0 mt-0.5">
+                <span className="px-2 py-0.5 rounded-sm bg-critical-bg text-critical border border-critical font-bold text-[9px] shrink-0 mt-0.5">
                   ALARM
                 </span>
                 <div>
@@ -230,7 +230,7 @@ export default function HealthPage() {
             </p>
           </div>
 
-          <span className="px-2.5 py-1 rounded-sm bg-safe/20 text-safe border border-safe text-xs font-mono font-bold flex items-center gap-1.5">
+          <span className="px-2.5 py-1 rounded-sm bg-safe-bg text-safe border border-safe text-xs font-mono font-bold flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>ALL GATES PASSED (100%)</span>
           </span>
@@ -255,7 +255,7 @@ export default function HealthPage() {
                 <td className="py-3 px-3 text-text-secondary">&ge; 75.0%</td>
                 <td className="py-3 px-3 text-copper font-bold">79.4%</td>
                 <td className="py-3 px-3 text-right">
-                  <span className="px-2 py-0.5 rounded-sm bg-safe/20 text-safe border border-safe text-[9px] font-bold">
+                  <span className="px-2 py-0.5 rounded-sm bg-safe-bg text-safe border border-safe text-[9px] font-bold">
                     PASSED (+4.4%)
                   </span>
                 </td>
@@ -267,7 +267,7 @@ export default function HealthPage() {
                 <td className="py-3 px-3 text-text-secondary">&ge; 98.0%</td>
                 <td className="py-3 px-3 text-copper font-bold">99.2%</td>
                 <td className="py-3 px-3 text-right">
-                  <span className="px-2 py-0.5 rounded-sm bg-safe/20 text-safe border border-safe text-[9px] font-bold">
+                  <span className="px-2 py-0.5 rounded-sm bg-safe-bg text-safe border border-safe text-[9px] font-bold">
                     PASSED (+1.2%)
                   </span>
                 </td>
@@ -279,7 +279,7 @@ export default function HealthPage() {
                 <td className="py-3 px-3 text-text-secondary">&ge; 82.0%</td>
                 <td className="py-3 px-3 text-copper font-bold">86.5%</td>
                 <td className="py-3 px-3 text-right">
-                  <span className="px-2 py-0.5 rounded-sm bg-safe/20 text-safe border border-safe text-[9px] font-bold">
+                  <span className="px-2 py-0.5 rounded-sm bg-safe-bg text-safe border border-safe text-[9px] font-bold">
                     PASSED (+4.5%)
                   </span>
                 </td>
@@ -291,7 +291,7 @@ export default function HealthPage() {
                 <td className="py-3 px-3 text-text-secondary">FPR &le; 1.0%</td>
                 <td className="py-3 px-3 text-copper font-bold">0.0% FPR</td>
                 <td className="py-3 px-3 text-right">
-                  <span className="px-2 py-0.5 rounded-sm bg-safe/20 text-safe border border-safe text-[9px] font-bold">
+                  <span className="px-2 py-0.5 rounded-sm bg-safe-bg text-safe border border-safe text-[9px] font-bold">
                     PASSED (Zero Alarms)
                   </span>
                 </td>
@@ -303,7 +303,7 @@ export default function HealthPage() {
                 <td className="py-3 px-3 text-text-secondary">Accuracy &ge; 90.0%</td>
                 <td className="py-3 px-3 text-copper font-bold">94.8%</td>
                 <td className="py-3 px-3 text-right">
-                  <span className="px-2 py-0.5 rounded-sm bg-safe/20 text-safe border border-safe text-[9px] font-bold">
+                  <span className="px-2 py-0.5 rounded-sm bg-safe-bg text-safe border border-safe text-[9px] font-bold">
                     PASSED (+4.8%)
                   </span>
                 </td>
@@ -315,7 +315,7 @@ export default function HealthPage() {
                 <td className="py-3 px-3 text-text-secondary">&le; 50.0 ms</td>
                 <td className="py-3 px-3 text-copper font-bold">31.8 ms</td>
                 <td className="py-3 px-3 text-right">
-                  <span className="px-2 py-0.5 rounded-sm bg-safe/20 text-safe border border-safe text-[9px] font-bold">
+                  <span className="px-2 py-0.5 rounded-sm bg-safe-bg text-safe border border-safe text-[9px] font-bold">
                     PASSED (-18.2ms)
                   </span>
                 </td>

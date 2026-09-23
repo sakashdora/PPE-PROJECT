@@ -85,6 +85,8 @@ const DEMO_CAMERAS: CameraStream[] = [
   },
 ];
 
+import { motion } from "framer-motion";
+
 type DetectionMode = "live" | "upload";
 type LayoutPreset = "2x2" | "3x3" | "4x4";
 type AlertFilter = "all" | "critical" | "warning" | "info";
@@ -115,20 +117,30 @@ function AlertQueueCard({
   });
 
   const alertTypeStr = alert.type as string;
-  const title =
-    alertTypeStr === "fire" || alertTypeStr === "smoke"
-      ? "Fire / Smoke Outbreak"
-      : alertTypeStr === "missing_ppe"
-      ? `${alert.items.map((i: string) => i.replace("no_", "").replace(/_/g, " ")).join(" & ")} Breach`
-      : alertTypeStr === "smoking"
-      ? "Restricted Smoking Ignition"
-      : alertTypeStr.replace(/_/g, " ").toUpperCase();
+  let title = "";
+  if (alertTypeStr === "fire" || alertTypeStr === "smoke") {
+    title = `Fire & Thermal Hazard — ${alert.sector}`;
+  } else if (alertTypeStr === "missing_ppe") {
+    const itemNames = alert.items.map((i: string) => {
+      const raw = i.replace("no_", "").replace(/_/g, " ").toLowerCase();
+      if (raw.includes("hardhat") || raw.includes("helmet")) return "Hardhat";
+      if (raw.includes("vest")) return "High-Vis Vest";
+      if (raw.includes("gloves")) return "Thermal Gloves font-medium";
+      if (raw.includes("boots")) return "Safety Boots";
+      return raw.charAt(0).toUpperCase() + raw.slice(1);
+    });
+    title = `Missing ${itemNames.join(" & ")} — ${alert.sector}`;
+  } else if (alertTypeStr === "smoking") {
+    title = `Restricted Ignition Breach — ${alert.sector}`;
+  } else {
+    title = `${alertTypeStr.replace(/_/g, " ")} — ${alert.sector}`;
+  }
 
   const desc = isCritical
-    ? `Thermal smoke density verified (confidence ${(alert.confidence * 100).toFixed(1)}%)`
+    ? `Thermal smoke density verified (confidence ${(alert.confidence * 100).toFixed(0)}%)`
     : isWarning
-    ? `Worker without ${alert.items.join(", ")} (confidence ${(alert.confidence * 100).toFixed(1)}%)`
-    : "System telemetry log";
+    ? `PPE compliance boundary violation in ${alert.sector}`
+    : `System telemetry log`;
 
   const SevIcon = isCritical ? Flame : isWarning ? AlertTriangle : Info;
 
@@ -138,7 +150,7 @@ function AlertQueueCard({
       onClick={() => onInspect(alert.id)}
       className={`w-full text-left flex gap-0 rounded-sm overflow-hidden border transition-colors hover:border-copper hover:bg-elevated group ${
         isCritical && alert.status === "open"
-          ? "border-critical bg-critical/15 animate-critical-pulse"
+          ? "border-critical bg-critical-bg animate-critical-pulse"
           : "border-border bg-surface"
       }`}
     >
@@ -208,21 +220,18 @@ export default function LiveWallPage() {
 
   const queue = selectQueue(byId);
   const activeAlerts = queue.filter(
-    (a) => a.status === "open" || a.status === "acknowledged"
+    (a) => (a.status === "open" || a.status === "acknowledged") && a.severity !== "COMPLIANCE"
   );
   const selectedAlert = selectedAlertId ? byId[selectedAlertId] || null : null;
 
   const criticalAlerts = activeAlerts.filter((a) => a.severity === "CRITICAL");
   const warningAlerts = activeAlerts.filter((a) => a.severity === "WARNING");
-  const infoAlerts = activeAlerts.filter((a) => a.severity === "COMPLIANCE");
 
   const filteredAlerts =
     alertFilter === "critical"
       ? criticalAlerts
       : alertFilter === "warning"
       ? warningAlerts
-      : alertFilter === "info"
-      ? infoAlerts
       : activeAlerts;
 
   const sortedCameras = [...DEMO_CAMERAS].sort((a, b) => {
@@ -259,7 +268,6 @@ export default function LiveWallPage() {
     { key: "all", label: "ALL", count: activeAlerts.length },
     { key: "critical", label: "CRITICAL", count: criticalAlerts.length },
     { key: "warning", label: "WARNING", count: warningAlerts.length },
-    { key: "info", label: "COMPLIANCE", count: infoAlerts.length },
   ];
 
   return (
@@ -277,29 +285,39 @@ export default function LiveWallPage() {
               <span>DETECTION VIEWPORT</span>
             </h1>
 
-            {/* Locked Segmented Control: Live Camera ↔ Upload Video */}
-            <div className="flex items-center bg-base border border-border rounded-sm p-0.5">
+            {/* Segmented Control: Live Camera ↔ Upload Video */}
+            <div className="flex items-center bg-base border border-border rounded-sm p-0.5 relative">
               <button
                 type="button"
                 onClick={() => setDetectionMode("live")}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-2xs font-mono font-semibold transition-all ${
-                  detectionMode === "live"
-                    ? "bg-copper text-base shadow-sm"
-                    : "text-text-secondary hover:text-text-primary"
+                className={`relative z-10 flex items-center gap-1.5 px-3 py-1 rounded-sm text-2xs font-mono font-semibold transition-colors ${
+                  detectionMode === "live" ? "text-base" : "text-text-secondary hover:text-text-primary"
                 }`}
               >
+                {detectionMode === "live" && (
+                  <motion.div
+                    layoutId="activeWallMode"
+                    className="absolute inset-0 bg-copper rounded-sm z-[-1]"
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  />
+                )}
                 <Layers className="w-3 h-3" />
                 <span>LIVE CAMERA FEEDS</span>
               </button>
               <button
                 type="button"
                 onClick={() => setDetectionMode("upload")}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-2xs font-mono font-semibold transition-all ${
-                  detectionMode === "upload"
-                    ? "bg-copper text-base shadow-sm"
-                    : "text-text-secondary hover:text-text-primary"
+                className={`relative z-10 flex items-center gap-1.5 px-3 py-1 rounded-sm text-2xs font-mono font-semibold transition-colors ${
+                  detectionMode === "upload" ? "text-base" : "text-text-secondary hover:text-text-primary"
                 }`}
               >
+                {detectionMode === "upload" && (
+                  <motion.div
+                    layoutId="activeWallMode"
+                    className="absolute inset-0 bg-copper rounded-sm z-[-1]"
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  />
+                )}
                 <Film className="w-3 h-3" />
                 <span>UPLOAD VIDEO</span>
               </button>
@@ -447,8 +465,8 @@ export default function LiveWallPage() {
         {/* Panel Footer */}
         {activeAlerts.length > 0 && (
           <div className="px-3 py-2 border-t border-border shrink-0 bg-base text-2xs font-mono text-text-secondary flex items-center justify-between">
-            <span className="text-copper">CAS PROTOCOL ACTIVE</span>
-            <span>{criticalAlerts.length} P0 CRITICAL</span>
+            <span className="text-text-primary font-bold">{activeAlerts.length} OPEN INCIDENTS</span>
+            <span className="text-critical font-bold">{criticalAlerts.length} CRITICAL</span>
           </div>
         )}
       </div>

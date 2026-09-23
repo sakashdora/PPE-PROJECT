@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   LayoutGrid,
   AlertTriangle,
@@ -10,13 +11,11 @@ import {
   Activity,
   Bot,
   Sliders,
+  User,
+  Settings,
 } from "lucide-react";
 import { useAlertsStore } from "@/features/alerts/alerts.store";
 import { selectQueue } from "@/features/alerts/selectors";
-
-interface BottomDockProps {
-  onOpenCopilot?: () => void;
-}
 
 interface NavItem {
   id: string;
@@ -24,10 +23,9 @@ interface NavItem {
   description: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  isAction?: boolean;
 }
 
-export const BottomDock: React.FC<BottomDockProps> = ({ onOpenCopilot }) => {
+export const BottomDock: React.FC = () => {
   const pathname = usePathname();
   const byId = useAlertsStore((s) => s.byId);
   const queue = selectQueue(byId);
@@ -76,22 +74,36 @@ export const BottomDock: React.FC<BottomDockProps> = ({ onOpenCopilot }) => {
     {
       id: "admin",
       label: "Admin",
-      description: "Admin — confidence thresholds, zones & RTSP config",
-      href: "/admin/thresholds",
+      description: "Admin — cameras, zones & confidence thresholds",
+      href: "/admin",
       icon: Sliders,
+    },
+    {
+      id: "profile",
+      label: "Profile",
+      description: "User Profile — supervisor stats & activity",
+      href: "/profile",
+      icon: User,
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      description: "System Settings — preferences & audio",
+      href: "/settings",
+      icon: Settings,
     },
   ];
 
   return (
     <aside aria-label="Quick Navigation Dock" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 select-none">
       {/* Floating Dock Container (The single sanctioned blurred surface) */}
-      <div className="forge-dock rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-2xl relative border border-border">
+      <div className="forge-dock rounded-full px-3 py-1.5 flex items-center gap-2 shadow-2xl relative border border-border">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive =
             item.href === "/wall"
               ? pathname === "/wall"
-              : item.href === "/admin/thresholds"
+              : item.href === "/admin"
               ? pathname.startsWith("/admin")
               : pathname.startsWith(item.href);
 
@@ -122,22 +134,22 @@ export const BottomDock: React.FC<BottomDockProps> = ({ onOpenCopilot }) => {
                 </div>
               )}
 
-              {/* Navigation Link / Button */}
+              {/* Navigation Link / Button with 48px min touch target */}
               <Link
                 href={item.href}
-                className={`relative p-2.5 rounded-full flex flex-col items-center justify-center transition-all duration-150 group ${
+                className={`relative min-w-[48px] min-h-[48px] p-3 rounded-full flex flex-col items-center justify-center transition-all duration-150 group ${
                   isActive
-                    ? "text-copper bg-surface/80"
+                    ? "text-brand-accent bg-surface/80"
                     : "text-text-secondary hover:text-text-primary hover:bg-surface/50"
                 }`}
                 aria-label={item.label}
               >
                 {/* Icon with subtle lift on hover */}
                 <div className="transition-transform duration-150 group-hover:-translate-y-0.5">
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-[18px] h-[18px]" />
                 </div>
 
-                {/* Persistent Numeric Badge for Unread Alerts (NON-NEGOTIABLE SAFETY REQUIREMENT) */}
+                {/* Persistent Numeric Badge for Unread Alerts */}
                 {isAlerts && unreadAlertsCount > 0 && (
                   <span
                     className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-critical border border-border text-[9px] font-mono font-bold text-white flex items-center justify-center animate-pulse"
@@ -147,12 +159,15 @@ export const BottomDock: React.FC<BottomDockProps> = ({ onOpenCopilot }) => {
                   </span>
                 )}
 
-                {/* Active Indicator: Persistent Signal Copper underline dot */}
-                {isActive && (
-                  <span className="w-1.5 h-0.5 bg-copper rounded-full mt-0.5" />
-                )}
-                {!isActive && (
-                  <span className="w-1.5 h-0.5 bg-transparent mt-0.5" />
+                {/* Active Indicator: Framer Motion layoutId dot */}
+                {isActive ? (
+                  <motion.span
+                    layoutId="activeDockDot"
+                    className="w-1.5 h-1.5 bg-brand-accent rounded-full mt-0.5"
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                ) : (
+                  <span className="w-1.5 h-1.5 bg-transparent mt-0.5" />
                 )}
               </Link>
             </div>

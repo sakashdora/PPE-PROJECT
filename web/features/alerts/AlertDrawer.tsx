@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Alert } from "@/lib/types";
 import { SeverityBadge } from "@/components/SeverityBadge";
 import { useAlertsStore } from "./alerts.store";
@@ -67,6 +67,9 @@ interface AlertDrawerProps {
   onClose: () => void;
 }
 
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+
 export const AlertDrawer: React.FC<AlertDrawerProps> = ({ alert, onClose }) => {
   const acknowledgeAlert = useAlertsStore((s) => s.acknowledgeAlert);
   const resolveAlert = useAlertsStore((s) => s.resolveAlert);
@@ -74,9 +77,30 @@ export const AlertDrawer: React.FC<AlertDrawerProps> = ({ alert, onClose }) => {
   const locale = useAlertsStore((s) => s.locale);
   const t = DICTIONARY[locale];
 
+  const drawerRef = React.useRef<HTMLDivElement>(null);
   const [noteText, setNoteText] = useState<string>("");
   const [serverError, setServerError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+
+  // GSAP Entrance animation
+  useGSAP(() => {
+    if (drawerRef.current && alert) {
+      gsap.fromTo(
+        drawerRef.current,
+        { x: "100%" },
+        { x: "0%", duration: 0.35, ease: "power3.out" }
+      );
+    }
+  }, [alert]);
+
+  // Keyboard escape listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   if (!alert) return null;
 
@@ -119,6 +143,7 @@ export const AlertDrawer: React.FC<AlertDrawerProps> = ({ alert, onClose }) => {
       onClick={onClose}
     >
       <div
+        ref={drawerRef}
         className="w-full max-w-lg bg-elevated border-l border-border h-full overflow-y-auto flex flex-col p-6 select-none"
         onClick={(e) => e.stopPropagation()}
       >
@@ -191,7 +216,7 @@ export const AlertDrawer: React.FC<AlertDrawerProps> = ({ alert, onClose }) => {
             {/* Bounding Box Simulation */}
             <div
               className={`absolute border-2 ${
-                alert.severity === "CRITICAL" ? "border-critical bg-critical/20" : "border-warning bg-warning/20"
+                alert.severity === "CRITICAL" ? "border-critical bg-critical-bg" : "border-warning bg-warning-bg"
               } font-mono text-3xs text-text-primary px-1 py-0.5`}
               style={{
                 left: "25%",
@@ -242,7 +267,7 @@ export const AlertDrawer: React.FC<AlertDrawerProps> = ({ alert, onClose }) => {
                 <Cpu className="w-3.5 h-3.5 text-copper" />
                 <span>MODEL: {alert.modelVersion || "yolo11s_s2"} (ONNX INT8)</span>
               </div>
-              <span className="text-3xs text-jade font-semibold">
+              <span className="text-3xs text-slate-connect font-semibold">
                 CAS VERSION #{alert.version ?? 1}
               </span>
             </div>
@@ -301,7 +326,7 @@ export const AlertDrawer: React.FC<AlertDrawerProps> = ({ alert, onClose }) => {
 
         {/* Error Alert */}
         {serverError && (
-          <div className="mb-3 px-3 py-1.5 bg-critical/20 border border-critical rounded-sm text-2xs font-mono text-text-primary">
+          <div className="mb-3 px-3 py-1.5 bg-critical-bg border border-critical rounded-sm text-2xs font-mono text-text-primary">
             {serverError}
           </div>
         )}

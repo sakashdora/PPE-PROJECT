@@ -127,57 +127,60 @@ export default function CamerasAdminPage() {
         </button>
       </div>
 
-      {/* Camera Grid List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {cameras.map((cam) => (
-          <div
-            key={cam.id}
-            className="p-4 bg-surface border border-border rounded-sm space-y-3 font-mono text-xs"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-none bg-jade animate-pulse" />
-                <span className="font-bold text-text-primary text-sm font-display">{cam.name}</span>
-              </div>
-              <span className="text-3xs px-2 py-0.5 rounded-sm bg-base text-text-secondary border border-border">
-                {cam.id.toUpperCase()}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-2xs text-text-secondary bg-base p-2.5 rounded-sm border border-border">
-              <div>
-                <span className="text-text-secondary">ASSIGNED SECTOR:</span>
-                <div className="font-bold text-text-primary mt-0.5">{cam.sector}</div>
-              </div>
-              <div>
-                <span className="text-text-secondary">SOURCE TYPE:</span>
-                <div className="font-bold text-copper mt-0.5">{cam.sourceType.toUpperCase()}</div>
-              </div>
-              <div>
-                <span className="text-text-secondary">MEASURED FPS:</span>
-                <div className="font-bold text-jade mt-0.5">{cam.fps.toFixed(1)} FPS</div>
-              </div>
-              <div>
-                <span className="text-text-secondary">EDGE LATENCY:</span>
-                <div className="font-bold text-text-primary mt-0.5">{cam.latencyMs} ms</div>
-              </div>
-            </div>
-
-            <div className="text-2xs text-text-secondary truncate">
-              <span className="text-text-secondary">URI: </span>
-              <span className="text-text-primary">{cam.sourceUrl}</span>
-            </div>
-
-            <div className="pt-2 border-t border-border flex justify-between items-center text-2xs">
-              <span className="text-jade flex items-center gap-1">
-                <CheckCircle className="w-3.5 h-3.5" /> Auto-Reconnect Armed
-              </span>
-              <span className="px-2.5 py-1 bg-elevated text-text-secondary rounded-sm flex items-center gap-1 border border-border">
-                <Settings className="w-3 h-3 text-copper" /> Active ONNX Channel
-              </span>
-            </div>
-          </div>
-        ))}
+      {/* Camera Data-Dense Table List */}
+      <div className="overflow-x-auto bg-surface border border-border rounded-sm">
+        <table className="w-full text-left font-mono text-xs">
+          <thead className="bg-base border-b border-border text-text-secondary">
+            <tr>
+              <th className="px-4 py-2 font-bold uppercase tracking-wider">Status / Camera</th>
+              <th className="px-4 py-2 font-bold uppercase tracking-wider">Sector</th>
+              <th className="px-4 py-2 font-bold uppercase tracking-wider">Source Type</th>
+              <th className="px-4 py-2 font-bold uppercase tracking-wider">FPS</th>
+              <th className="px-4 py-2 font-bold uppercase tracking-wider">Latency</th>
+              <th className="px-4 py-2 font-bold uppercase tracking-wider text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {cameras.map((cam) => (
+              <tr key={cam.id} className="hover:bg-elevated transition-colors">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-none bg-slate-connect animate-pulse shrink-0" />
+                    <div>
+                      <div className="font-bold text-text-primary text-sm font-display truncate max-w-[200px]">
+                        {cam.name}
+                      </div>
+                      <div className="text-3xs text-text-secondary mt-0.5">{cam.id.toUpperCase()}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3 font-bold text-text-primary whitespace-nowrap">
+                  {cam.sector}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="font-bold text-copper">{cam.sourceType.toUpperCase()}</div>
+                  <div className="text-3xs text-text-secondary truncate max-w-[150px]">{cam.sourceUrl}</div>
+                </td>
+                <td className="px-4 py-3 font-bold text-slate-connect whitespace-nowrap">
+                  {cam.fps.toFixed(1)} FPS
+                </td>
+                <td className="px-4 py-3 font-bold text-text-primary whitespace-nowrap">
+                  {cam.latencyMs} ms
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2 text-2xs">
+                    <span className="text-slate-connect flex items-center gap-1" title="Auto-Reconnect Armed">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                    </span>
+                    <button className="p-1.5 bg-elevated hover:bg-base text-text-secondary hover:text-text-primary border border-border rounded-sm transition-colors" title="Settings">
+                      <Settings className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Add Camera Modal */}

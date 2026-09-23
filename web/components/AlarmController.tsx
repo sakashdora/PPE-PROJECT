@@ -44,29 +44,6 @@ export const AlarmController: React.FC = () => {
 };
 
 export const AudioUnlockGateModal: React.FC = () => {
-  const audioUnlocked = useAlertsStore((s) => s.audioUnlocked);
-  const setAudioUnlocked = useAlertsStore((s) => s.setAudioUnlocked);
-  const locale = useAlertsStore((s) => s.locale);
-  const t = DICTIONARY[locale];
-
-  if (audioUnlocked) return null;
-
-  return (
-    <div className="bg-amber-950/90 border-b border-amber-600/80 px-4 py-2 text-amber-200 text-xs flex items-center justify-between shadow-inner">
-      <div className="flex items-center gap-2 font-mono">
-        <ShieldAlert className="w-4 h-4 text-amber-400" />
-        <span>
-          <strong className="text-amber-300">CRITICAL SAFETY REQUIREMENT:</strong> Browser autoplay policy requires user interaction to enable the emergency siren.
-        </span>
-      </div>
-      <button
-        type="button"
-        onClick={() => setAudioUnlocked(true)}
-        className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded text-xs flex items-center gap-1.5 shadow"
-      >
-        <Check className="w-3.5 h-3.5" />
-        <span>ARM AUDIO SIREN</span>
-      </button>
-    </div>
-  );
+  // Autoplay siren unlock is handled directly inside TopStatusStrip header
+  return null;
 };

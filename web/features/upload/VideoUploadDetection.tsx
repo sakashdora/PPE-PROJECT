@@ -51,9 +51,9 @@ const DEMO_PRESETS: {
         description: "Worker ID #4092 entered overhead crane perimeter without head protection.",
         confidence: 0.94,
         detections: [
-          { label: "Person [0.96]", box: [35, 30, 25, 55], color: "#F2760C" },
-          { label: "NO_HARDHAT [0.94]", box: [42, 28, 12, 12], color: "#F2760C" },
-          { label: "Safety_Vest [0.92]", box: [38, 42, 20, 25], color: "#3E8E5A" },
+          { label: "Person [0.96]", box: [35, 30, 25, 55], color: "#E8700A" },
+          { label: "NO_HARDHAT [0.94]", box: [42, 28, 12, 12], color: "#E8700A" },
+          { label: "Safety_Vest [0.92]", box: [38, 42, 20, 25], color: "#2E8B57" },
         ],
       },
       {
@@ -76,9 +76,9 @@ const DEMO_PRESETS: {
         description: "Shift supervisor escort confirmed zone evacuated.",
         confidence: 0.98,
         detections: [
-          { label: "Supervisor [0.98]", box: [20, 32, 24, 52], color: "#3E8E5A" },
-          { label: "Hardhat_OK [0.97]", box: [26, 29, 12, 10], color: "#3E8E5A" },
-          { label: "Vest_OK [0.99]", box: [22, 41, 20, 26], color: "#3E8E5A" },
+          { label: "Supervisor [0.98]", box: [20, 32, 24, 52], color: "#2E8B57" },
+          { label: "Hardhat_OK [0.97]", box: [26, 29, 12, 10], color: "#2E8B57" },
+          { label: "Vest_OK [0.99]", box: [22, 41, 20, 26], color: "#2E8B57" },
         ],
       },
     ],
@@ -97,8 +97,8 @@ const DEMO_PRESETS: {
         description: "Hand-to-mouth ignition gesture flagged in Class 1 Div 2 zone.",
         confidence: 0.91,
         detections: [
-          { label: "Person [0.95]", box: [40, 25, 28, 60], color: "#F2760C" },
-          { label: "SMOKING_GESTURE [0.91]", box: [48, 35, 12, 12], color: "#F2760C" },
+          { label: "Person [0.95]", box: [40, 25, 28, 60], color: "#E8700A" },
+          { label: "SMOKING_GESTURE [0.91]", box: [48, 35, 12, 12], color: "#E8700A" },
         ],
       },
       {
@@ -109,7 +109,7 @@ const DEMO_PRESETS: {
         description: "Routine perimeter sweep completed without anomalies.",
         confidence: 0.97,
         detections: [
-          { label: "Inspector [0.97]", box: [30, 28, 25, 55], color: "#3E8E5A" },
+          { label: "Inspector [0.97]", box: [30, 28, 25, 55], color: "#2E8B57" },
         ],
       },
     ],
@@ -434,7 +434,7 @@ export const VideoUploadDetection: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between text-2xs font-mono text-text-secondary">
-              <span className="text-jade font-semibold">48.2 FPS (ONNX INT8)</span>
+              <span className="text-slate-connect font-semibold">48.2 FPS (ONNX INT8)</span>
               <span className="text-copper">
                 Frame {processedFrame} / {totalFrames}
               </span>
@@ -478,10 +478,10 @@ export const VideoUploadDetection: React.FC = () => {
               <div
                 className={`p-2.5 rounded-sm border mb-3 ${
                   activeIncident.type === "CRITICAL"
-                    ? "bg-critical/20 border-critical text-critical"
+                    ? "bg-critical-bg border-critical text-critical"
                     : activeIncident.type === "WARNING"
-                    ? "bg-warning/20 border-warning text-warning"
-                    : "bg-safe/20 border-safe text-safe"
+                    ? "bg-warning-bg border-warning text-warning"
+                    : "bg-safe-bg border-safe text-safe"
                 }`}
               >
                 <div className="flex items-center gap-1.5 text-xs font-mono font-bold uppercase mb-1">
@@ -581,7 +581,7 @@ export const VideoUploadDetection: React.FC = () => {
               }}
             >
               {/* Green baseline for compliant time */}
-              <div className="absolute inset-y-2 left-0 right-0 bg-safe/25" />
+              <div className="absolute inset-y-2 left-0 right-0 bg-safe-bg" />
 
               {/* Severity Incident Markers along timeline */}
               {selectedPreset.incidents.map((inc, i) => {
