@@ -1,4 +1,4 @@
-# ─── Node / Next.js ───────────────────────────────────────
+# --- Node / Next.js ---
 node_modules/
 .next/
 out/
@@ -7,63 +7,63 @@ build/
 *.tsbuildinfo
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-.pnp
-.pnp.js
 
-# ─── Python ───────────────────────────────────────────────
+# --- Python ---
 __pycache__/
 *.py[cod]
-*$py.class
+*\.class
 *.pyo
-*.pyd
 .Python
 .venv/
 venv/
 env/
 *.egg-info/
-dist/
-build/
 .pytest_cache/
 .mypy_cache/
 *.pyc
 
-# ─── Databases (dev runtime state) ───────────────────────
+# --- Databases ---
 server/prisma/dev.db
 server/prisma/dev.db-journal
 outbox.db
 outbox.db-journal
+edge/outbox.db
+edge/outbox.db-journal
 
-# ─── Snapshots / Media ───────────────────────────────────
+# --- Snapshots / Media ---
 snapshots/
-!web/public/snapshots/.gitkeep
+edge/snapshots/
+server/snapshots/
 
-# ─── ML / Training Data ──────────────────────────────────────
-# Raw downloaded datasets (multi-GB, fetched via Kaggle API — see ml/sources.yaml)
+# --- ML / Training Data (multi-GB) ---
 raw/
 ds/
-# Exclude large image/label folders
 *.jpg
 *.jpeg
 *.png
 *.bmp
 *.tif
 *.tiff
-# Re-include small non-training images tracked explicitly (none yet)
-# Keep the exported ONNX model
-!models/best.onnx
+test_output/
+scratch/
+temp*.md
 
-# ─── Environment / Secrets ───────────────────────────────
+# --- Models: track all ONNX exports explicitly ---
+!models/best.onnx
+!models/best_s2.onnx
+!models/best_s3.onnx
+!models/best_s4.onnx
+!ml/weights/stage4/best_s4_swa.pt
+
+# --- Environment / Secrets ---
 .env
 .env.local
 .env.production
 .env*.local
-# Keep the example template
 !infra/.env.example
 !server/.env.example
 
-# ─── IDE / OS ─────────────────────────────────────────────
+# --- IDE / OS ---
 .DS_Store
 Thumbs.db
 .vscode/settings.json
@@ -72,9 +72,6 @@ Thumbs.db
 *.swo
 *~
 
-# ─── Logs ─────────────────────────────────────────────────
+# --- Logs ---
 *.log
 logs/
-
-# ─── Docker ───────────────────────────────────────────────
-# Keep docker-compose and Dockerfiles tracked
