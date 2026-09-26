@@ -145,10 +145,6 @@ class EdgeWorker:
                     self.latency_ms[cam.id] = round(infer_time, 1)
                     self.fps_counters[cam.id] = round(1.0 / max(0.001, (time.time() - now)), 1)
 
-            # Periodic Heartbeat Telemetry
-            if now - self.last_heartbeat >= self.config.heartbeat_interval_sec:
-                self.last_heartbeat = now
-                self._send_heartbeat()
 
             time.sleep(0.01)
 

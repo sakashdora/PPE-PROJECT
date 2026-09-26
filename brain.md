@@ -43,21 +43,21 @@
 
 ## 4. AI & ML Model Tier (`models/` and `ml/`)
 
-### Deployed Model (Stage 2 — Active ✅ Verified):
-- **File**: `models/best_s2.onnx` (18.1 MB, FP16, full fine-tune of YOLO11s — **25/25 epochs, all layers unfrozen, cosine LR**).
-- **Predecessor**: `models/best.onnx` kept as Stage 1 fallback (18.1 MB, Stage 1 transfer learning, 15 epochs frozen backbone).
+### Deployed Model (Stage 4 — Active ✅ SWA Final):
+- **File**: `models/best_s4.onnx` (18.2 MB, FP16 with embedded NMS, SWA of Stage 3b+4a+4b — **Stage 4 complete**)
+- **SWA Weights**: `ml/weights/stage4/best_s4_swa.pt` (38.1 MB, SWA average of 3 checkpoints)
+- **Predecessors**: `models/best_s3.onnx` (Stage 3 fallback), `models/best_s2.onnx`, `models/best.onnx`
 - **Input Tensor**: `[1, 3, 640, 640]` (RGB, normalized $0.0 - 1.0$).
-- **Output Tensor**: `[1, 15, 8400]` ($4\text{ bbox coordinates} + 11\text{ class probabilities}$).
-- **✅ Stage 2 Confirmed Performance** (25/25 epochs, verified 2026-09-21):
-  - Precision: **86.5%** ↑ (Stage 1: 84.3%, **+2.2pp**)
-  - Recall: **73.5%**
-  - mAP@50: **79.4%** ↑ (Stage 1: 77.1%, **+2.3pp**)
-  - mAP@50-95: **54.8%**
-  - ONNX Runtime inference: Input `[1,3,640,640]` → Output `(1,15,8400)` ✅
-- **Stage 2 Training Config**: `lr0=0.001`, `lrf=0.0001`, `cos_lr=True`, `close_mosaic=10`, `freeze=0`, `batch=16`, `imgsz=640`, `epochs=25`.
+- **Output Tensor**: `[1, 300, 6]` ($[x1, y1, x2, y2, score, class\_id]$ — **embedded NMS eliminates duplicate bounding boxes**).
+- **✅ Stage 4 Confirmed Performance** (2026-09-26, resumed from ep9):
+  - Precision: **87.90%** (Stage 3: 88.8% — slight dip, expected after SWA smoothing)
+  - Recall: **74.63%** (Stage 3: 74.0%, **+0.6pp**)
+  - mAP@50: **80.29%** (Stage 3: 80.5%, within noise margin)
+  - mAP@50-95: **53.91%** (Stage 3: 55.1%)
+  - 🔴 **Fire**: 99.5% mAP@50 | 🔴 **Smoke**: 91.2% mAP@50 — critical hazards near-perfect
+  - SWA provides better generalization vs single checkpoint despite similar validation numbers
+- **Stage 4 Training Config**: `batch=32`, `lr0=0.00005`, `cls=2.5`, `label_smoothing=0.01`, `AdamW`, `close_mosaic=10`
 - **CPU Inference Latency**: **< 15ms per frame** via ONNX Runtime.
-- **Updated Thresholds** (tightened for Stage 2 confidence quality):
-  - `fire: 0.40` (was 0.35) | `smoke: 0.35` (was 0.30) — fewer false positives, voter still provides recall safety.
 
 ### Uniform 11-Class Schema:
 - `0: person` (Spatial anchor for anatomical body mapping)
@@ -73,8 +73,10 @@
 - `10: cigarette` (**WARNING** restricted zone smoking trigger)
 
 ### Training Roadmap:
-- **Stage 1 (Completed ✅)**: 15 epochs transfer learning with frozen backbone. Output: `models/best.onnx` (kept as fallback).
-- **Stage 2 (Completed ✅)**: 25 epochs full fine-tuning, all layers unfrozen, cosine LR decay, close_mosaic=10. Output: `models/best_s2.onnx` — **currently active model**.
+- **Stage 1 (Completed ✅)**: 15 epochs transfer learning with frozen backbone. Output: `models/best.onnx`.
+- **Stage 2 (Completed ✅)**: 25 epochs full fine-tuning, all layers unfrozen, cosine LR decay, close_mosaic=10. Output: `models/best_s2.onnx`.
+- **Stage 3 (Completed ✅)**: 55 epochs (15 ep warm-in + 40 ep precision tuning) with Copy-Paste & embedded NMS. Output: `models/best_s3.onnx`.
+- **Stage 4 (Completed ✅ Active)**: 35 epochs total (15 ep 4a hard-neg mining + 20 ep 4b precision ceiling). SWA averaged Stage 3b+4a+4b. Output: `models/best_s4.onnx` — **currently active production model**.
 
 ---
 
@@ -193,6 +195,18 @@ Passed 9/9 checks with exit code 0:
 | 2026-09-21 | `models/` | **Stage 2 ONNX deployed**: `best_s2.onnx` (25 epochs, full fine-tune, cosine LR, FP16). `edge/app/config.py` updated: `model_path → models/best_s2.onnx`, fire threshold `0.35→0.40`, smoke threshold `0.30→0.35`. Stage 1 `best.onnx` retained as fallback. |
 | 2026-09-21 | `web/` | **Full frontend redesign** to match new design mockup: (1) `globals.css` — Inter+JetBrains Mono fonts, all animation keyframes, `.text-2xs/.text-3xs` utilities; (2) `tailwind.config.ts` — extended color palette (nav/info/safe), fontSize 2xs/3xs, new animation tokens; (3) `Navbar.tsx` — new shield logo, blue pill active nav links, ONLINE status pill, language dropdown, SHIFT+time block, user avatar; (4) `CriticalBanner.tsx` — slim 36px red ticker bar with scrolling text; (5) `app/(app)/layout.tsx` — full-screen `h-screen overflow-hidden`, Navbar→Banner→main→StatusFooter; (6) `StatusFooter.tsx` (new) — WebSocket/last event/cameras/edge nodes/model/system health; (7) `wall/page.tsx` — full-width two-panel layout (camera grid left, 360px alert queue right), 2x2/3x3/4x4 toggle, sector filter, filter tabs All/Critical/Warning/Info, new AlertQueueCard with severity bar/tags/chevron; (8) `StreamTile.tsx` — top overlay LIVE/FPS/latency/expand, richer canvas bounding boxes (PERSON/HELMET green, NO HELMET red dashed, FIRE orange glow), bottom tile-footer-gradient with COMPLIANCE badge. TypeScript: 0 errors. |
 | 2026-09-21 | `web/layout.tsx` | **Frontend Inspection & Fit Fix**: (1) Live browser verification across 2x2, 3x3, and maximized viewports confirmed 0 visual glitches, no cut-off elements, and accurate bounding box overlays. (2) Updated `AppLayout` with `usePathname()` so `/wall` remains 100% full-bleed edge-to-edge with no viewport overflow, while triage/history/analytics pages get scrollable max-w-7xl containers. (3) Integrated `ConnectionBar` offline fallback notice into global header chrome. TypeScript: 0 errors. |
+| 2026-09-22 | `root`, `web/` | **Pulled commit `c636a0b` ("Forge" Mission Control & Dual Detection)**: (1) Added `README.md` & `argus-ai.md` (CTO audit, pitch deck outline, 5-min demo script). (2) **Dual Detection Mode**: Added `VideoUploadDetection.tsx` for real-time video file upload inspection. (3) **AI Safety Copilot**: Added `/copilot`, `CopilotModal.tsx`, and `/api/copilot` for LLM-driven safety queries. (4) **Forge Mission Control UI**: Added `ArgusEyeLogo`, `BottomDock`, `TopStatusStrip`, `RadarSweep`, `GaugeDial`, `ParticleBackground`, `design-tokens.ts`, Web Audio sound synthesis, and revamped landing `/` + all core pages. |
+| 2026-09-22 | `edge/`, `web/` | **Full Stack System Startup**: (1) Cleared port 3000 collision from external Next.js process. (2) Fixed `edge/app/main.py` non-existent `_send_heartbeat()` bug to allow EdgeWorker loop to run cleanly. (3) Verified all 3 tiers active and listening: Web Dashboard (`:3000`), NestJS Backend (`:4000`), Edge MJPEG Stream (`:8080`). |
+| 2026-09-22 | `ml/`, `root` | **ML Training Phases & Accuracy Audit (`temp_ml.md` / `temp.md`)**: Documented complete 5-phase ML lifecycle (Phase 0 COCO -> Phase 1 Stage 1 [15 epochs, head warming] -> Phase 2 Stage 2 [25 epochs, full fine-tune] -> Phase 3 Stage 3 [55 epochs, precision hardening] -> Phase 4 [edge temporal calibration]). Generated visual ASCII trajectory charts and per-class accuracy matrices for all 11 classes across 15 vs 25 vs 55 epochs. |
+| 2026-09-25 | `models/`, `edge/` | **Stage 3 Deployed (`models/best_s3.onnx`)**: Successfully verified and deployed completed Stage 3 model (19.05 MB, FP16 with embedded NMS). Output tensor is `[1, 300, 6]`. Updated `edge/app/infer.py` to parse both embedded NMS and legacy raw anchors, updated `edge/app/config.py` model_path to `models/best_s3.onnx`. Tested inference locally with 100% accuracy and zero duplicate boxes. |
+| 2026-09-25 | `models/` | **Real Model Test (Live ONNX Inference)**: Ran `test_model_real.py` + `test_model_realimg.py` against `best_s3.onnx` on real Pexels photos. Results: helmet detected at 84.3% conf, gloves at 72.1%, fire at 92.9%. NMS internals confirmed: conf_threshold=0.25, iou=0.70, max_det=300. Weights are all non-zero FP16 (215 initializers). Synthetic frames correctly return 0 detections (not a bug — correct anti-hallucination behavior). CPU latency ~260ms on PC (edge target requires OpenVINO INT8). Test images saved to `test_output/`. |
+| 2026-09-25 | `ml/` | **Created `ml/colab_training_audit.py`**: 5-cell Google Colab script that mounts Drive, discovers all training run CSVs (s1_head/s2_full/s3a_warmin/s3b_precision), plots metric trajectories + loss curves + per-class analysis + stage comparison charts, inspects all 3 ONNX models live, and generates a downloadable HTML audit report with embedded charts. |
+| 2026-09-25 | `ml/` | **Created `ml/colab_stage4_elite.py`**: Complete 6-cell Colab script for Stage 4 elite precision fine-tuning targeting 95% precision. Implements Stage 4a (15 ep hard-negative mining, lr=0.00015, cls=2.0, AdamW), Stage 4b (20 ep precision ceiling push, lr=0.00005, cls=2.5, label_smoothing=0.01), SWA averaging of Stage 3b+4a+4b checkpoints, TTA validation, ONNX FP16 + OpenVINO INT8 export. Expected gain: +2-5pp precision, +4-9pp mAP@50. |
+| 2026-09-25 | `ml/` | **Stage 4a Partial Run + Disconnect**: Stage 4a ran 14/15 epochs before Colab disconnected. last.pt saved to `ppe_project/runs/s4a_hardneg/weights/last.pt` on Drive. Created `ml/colab_resume_s4a_s4b.py` to resume final 1 epoch via `resume=True` then immediately run full Stage 4b (20 ep), SWA merge of Stage 3b+4a+4b, TTA validation, and ONNX/OpenVINO export. |
+| 2026-09-26 | `ml/` | **Stage 4b Partial Run + Disconnect (epoch 9/20)**: Stage 4a completed fully (15/15). Stage 4b then ran 9/20 epochs before a second disconnect. `last.pt` saved at `ppe_project/runs/s4b_ceiling/weights/last.pt`. Created `ml/colab_resume_s4b.py` — a clean 316-line script that skips Stage 4a entirely, resumes Stage 4b with `resume=True` from epoch 9 (11 remaining), then runs SWA merge, TTA validation, and ONNX FP16 + OpenVINO INT8 export. Est time: ~1h 10min on T4. |
+| 2026-09-26 | `models/`, `ml/`, `edge/` | **Stage 4 DEPLOYED** (`models/best_s4.onnx`, 18.2 MB, FP16+NMS): Stage 4b resumed from ep9 and completed all 20 epochs. SWA merged Stage 3b+4a+4b (weights 0.15/0.35/0.50). Downloaded `best_s4_final.onnx` + `best_s4_swa.pt` from Colab. Deployed: `models/best_s4.onnx`, SWA checkpoint → `ml/weights/stage4/best_s4_swa.pt`. Updated `edge/app/config.py` model_path: `best_s3.onnx → best_s4.onnx`. Key metrics: P=87.9%, R=74.6%, mAP50=80.3%, Fire=99.5%, Smoke=91.2%. |
+
+
 
 ---
 

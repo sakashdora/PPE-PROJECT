@@ -57,7 +57,7 @@ class EdgeConfig(BaseModel):
     cooldown_seconds: int = 60
     db_path: str = "outbox.db"
     mjpeg_port: int = 8080
-    model_path: str = "models/best_s2.onnx"
+    model_path: str = "models/best_s4.onnx"
     cameras: List[CameraConfig] = Field(default_factory=lambda: [
         CameraConfig(
             id="cam-01",

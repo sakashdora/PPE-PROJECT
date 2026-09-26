@@ -71,35 +71,60 @@ class ONNXRuntimeEngine(BaseInferenceEngine):
         blob = canvas[:, :, ::-1].transpose(2, 0, 1).astype(np.float32) / 255.0
         blob = np.expand_dims(blob, axis=0)
 
-        outputs = self.session.run(None, {self.input_name: blob})[0]  # Shape [1, 15, 8400]
-        if outputs.shape[1] == 15 and outputs.shape[2] > 15:
-            preds = outputs[0].T  # Shape [8400, 15]
-        else:
-            preds = outputs[0]
+        outputs = self.session.run(None, {self.input_name: blob})[0]
 
         detections: List[Detection] = []
-        for row in preds:
-            cx, cy, bw, bh = row[:4]
-            class_scores = row[4:]
-            cid = int(np.argmax(class_scores))
-            conf = float(class_scores[cid])
+        # Format A: Embedded NMS tensor [1, max_det, 6] -> [x1, y1, x2, y2, conf, class_id]
+        if len(outputs.shape) == 3 and outputs.shape[2] == 6:
+            for row in outputs[0]:
+                conf = float(row[4])
+                if conf <= 0.05:
+                    continue
+                cid = int(row[5])
+                cname = CLASS_NAMES[cid] if cid < len(CLASS_NAMES) else "unknown"
+                if conf < self.get_threshold(cname):
+                    continue
 
-            cname = CLASS_NAMES[cid] if cid < len(CLASS_NAMES) else "unknown"
-            if conf < self.get_threshold(cname):
-                continue
+                x1 = (float(row[0]) - pad_x) / nw
+                y1 = (float(row[1]) - pad_y) / nh
+                x2 = (float(row[2]) - pad_x) / nw
+                y2 = (float(row[3]) - pad_y) / nh
 
-            # Unpad to original image coordinates
-            x1 = (cx - bw / 2.0 - pad_x) / nw
-            y1 = (cy - bh / 2.0 - pad_y) / nh
-            x2 = (cx + bw / 2.0 - pad_x) / nw
-            y2 = (cy + bh / 2.0 - pad_y) / nh
+                detections.append(Detection(
+                    class_id=cid,
+                    class_name=cname,
+                    confidence=round(conf, 3),
+                    bbox=[max(0.0, x1), max(0.0, y1), min(1.0, x2), min(1.0, y2)]
+                ))
+        else:
+            # Format B: Raw anchors [1, 15, 8400]
+            if outputs.shape[1] == 15 and outputs.shape[2] > 15:
+                preds = outputs[0].T  # Shape [8400, 15]
+            else:
+                preds = outputs[0]
 
-            detections.append(Detection(
-                class_id=cid,
-                class_name=cname,
-                confidence=round(conf, 3),
-                bbox=[max(0.0, x1), max(0.0, y1), min(1.0, x2), min(1.0, y2)]
-            ))
+            for row in preds:
+                cx, cy, bw, bh = row[:4]
+                class_scores = row[4:]
+                cid = int(np.argmax(class_scores))
+                conf = float(class_scores[cid])
+
+                cname = CLASS_NAMES[cid] if cid < len(CLASS_NAMES) else "unknown"
+                if conf < self.get_threshold(cname):
+                    continue
+
+                # Unpad to original image coordinates
+                x1 = (cx - bw / 2.0 - pad_x) / nw
+                y1 = (cy - bh / 2.0 - pad_y) / nh
+                x2 = (cx + bw / 2.0 - pad_x) / nw
+                y2 = (cy + bh / 2.0 - pad_y) / nh
+
+                detections.append(Detection(
+                    class_id=cid,
+                    class_name=cname,
+                    confidence=round(conf, 3),
+                    bbox=[max(0.0, x1), max(0.0, y1), min(1.0, x2), min(1.0, y2)]
+                ))
 
         return detections
 
