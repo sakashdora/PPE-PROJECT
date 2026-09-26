@@ -1,3 +1,4 @@
+# pyright: ignore-all-errors  # Colab-only script: !pip syntax + google.colab/torch/ultralytics run in Colab GPU, not locally
 # ==============================================================================
 # FACTORY SAFETY AI (PS06) — RESUME STAGE 4a (FROM EPOCH 14) + FULL STAGE 4b
 # ==============================================================================

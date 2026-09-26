@@ -1,0 +1,15 @@
+{
+  "pythonVersion": "3.11",
+  "venvPath": ".",
+  "venv": ".venv",
+  "exclude": [
+    "ml/colab_*.py",
+    "ml/train_colab.ipynb",
+    ".venv",
+    "node_modules",
+    "server/dist",
+    "web/.next"
+  ],
+  "reportMissingImports": true,
+  "reportMissingModuleSource": false
+}

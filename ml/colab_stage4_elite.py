@@ -1,3 +1,4 @@
+# pyright: ignore-all-errors  # Colab-only script: !pip syntax + google.colab/torch/ultralytics run in Colab GPU, not locally
 # ==============================================================================
 # FACTORY SAFETY AI (PS06) — STAGE 4: ELITE PRECISION FINE-TUNING
 # Target: 95%+ Precision | 88%+ mAP@50
