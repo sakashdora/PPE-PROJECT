@@ -2,14 +2,17 @@
   "pythonVersion": "3.11",
   "venvPath": ".",
   "venv": ".venv",
+  "ignore": [
+    "ml/colab_resume_s4a_s4b.py",
+    "ml/colab_resume_s4b.py",
+    "ml/colab_stage4_elite.py",
+    "ml/train_colab.ipynb"
+  ],
   "exclude": [
-    "ml/colab_*.py",
-    "ml/train_colab.ipynb",
     ".venv",
     "node_modules",
     "server/dist",
     "web/.next"
   ],
-  "reportMissingImports": true,
-  "reportMissingModuleSource": false
+  "reportMissingModuleSource": "none"
 }
