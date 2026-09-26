@@ -72,6 +72,8 @@ class ONNXRuntimeEngine(BaseInferenceEngine):
         blob = np.expand_dims(blob, axis=0)
 
         outputs = self.session.run(None, {self.input_name: blob})[0]
+        if not isinstance(outputs, np.ndarray):
+            outputs = np.array(outputs)
 
         detections: List[Detection] = []
         # Format A: Embedded NMS tensor [1, max_det, 6] -> [x1, y1, x2, y2, conf, class_id]

@@ -274,7 +274,7 @@ class EdgeWorker:
         date_folder = self.snapshot_dir / time.strftime("%Y/%m/%d")
         date_folder.mkdir(parents=True, exist_ok=True)
         snapshot_file = date_folder / f"{alert_id}.jpg"
-        cv2.imwrite(str(snapshot_file), frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+        cv2.imwrite(str(snapshot_file), frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
 
         alert_payload = {
             "id": alert_id,

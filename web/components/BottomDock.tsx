@@ -13,6 +13,7 @@ import {
   Sliders,
   User,
   Settings,
+  ScanSearch,
 } from "lucide-react";
 import { useAlertsStore } from "@/features/alerts/alerts.store";
 import { selectQueue } from "@/features/alerts/selectors";
@@ -70,6 +71,13 @@ export const BottomDock: React.FC = () => {
       description: "Copilot — deterministic safety intelligence engine",
       href: "/copilot",
       icon: Bot,
+    },
+    {
+      id: "forensics",
+      label: "Forensics",
+      description: "Video Forensics — upload & audit footage with YOLO11s",
+      href: "/forensics",
+      icon: ScanSearch,
     },
     {
       id: "admin",

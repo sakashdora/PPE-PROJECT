@@ -21,7 +21,7 @@ class FrameHub:
 
     def update_frame(self, camera_id: str, frame_bgr: np.ndarray) -> None:
         import cv2
-        ret, jpeg = cv2.imencode(".jpg", frame_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
+        ret, jpeg = cv2.imencode(".jpg", frame_bgr, [cv2.IMWRITE_JPEG_QUALITY, 75])
         if ret:
             with self._lock:
                 self._frames[camera_id] = jpeg.tobytes()

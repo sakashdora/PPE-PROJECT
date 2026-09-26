@@ -2,6 +2,9 @@
   "pythonVersion": "3.11",
   "venvPath": ".",
   "venv": ".venv",
+  "extraPaths": [
+    "edge"
+  ],
   "ignore": [
     "ml/colab_resume_s4a_s4b.py",
     "ml/colab_resume_s4b.py",

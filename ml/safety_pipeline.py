@@ -44,22 +44,37 @@ def convert_voc_to_yolo(xml_path, class_map):
         size = root.find("size")
         if size is None:
             return []
-        width = float(size.find("width").text)
-        height = float(size.find("height").text)
+        width_elem = size.find("width")
+        height_elem = size.find("height")
+        if width_elem is None or height_elem is None or width_elem.text is None or height_elem.text is None:
+            return []
+        width = float(width_elem.text)
+        height = float(height_elem.text)
         if width <= 0 or height <= 0:
             return []
 
         yolo_lines = []
         for obj in root.findall("object"):
-            name = obj.find("name").text.strip()
+            name_elem = obj.find("name")
+            if name_elem is None or name_elem.text is None:
+                continue
+            name = name_elem.text.strip()
             if name not in class_map:
                 continue
             cid = class_map[name]
             bnd = obj.find("bndbox")
-            xmin = float(bnd.find("xmin").text)
-            ymin = float(bnd.find("ymin").text)
-            xmax = float(bnd.find("xmax").text)
-            ymax = float(bnd.find("ymax").text)
+            if bnd is None:
+                continue
+            xmin_el = bnd.find("xmin")
+            ymin_el = bnd.find("ymin")
+            xmax_el = bnd.find("xmax")
+            ymax_el = bnd.find("ymax")
+            if xmin_el is None or ymin_el is None or xmax_el is None or ymax_el is None or xmin_el.text is None or ymin_el.text is None or xmax_el.text is None or ymax_el.text is None:
+                continue
+            xmin = float(xmin_el.text)
+            ymin = float(ymin_el.text)
+            xmax = float(xmax_el.text)
+            ymax = float(ymax_el.text)
 
             xmin = max(0.0, min(width, xmin))
             xmax = max(0.0, min(width, xmax))
@@ -444,7 +459,7 @@ def cmd_train(args):
     print(f"[*] Stage 2 Full Network Epochs: {args.s2_epochs}")
 
     try:
-        from ultralytics import YOLO
+        from ultralytics import YOLO  # type: ignore
 
         model = YOLO(args.weights)
 
@@ -622,7 +637,7 @@ def cmd_export(args):
     print(f"[*] Source weights: {weights_path}")
 
     try:
-        from ultralytics import YOLO
+        from ultralytics import YOLO  # type: ignore
         model = YOLO(str(weights_path))
 
         # Export to ONNX
