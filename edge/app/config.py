@@ -28,16 +28,16 @@ class CameraConfig(BaseModel):
 
 class ThresholdsConfig(BaseModel):
     person: float = 0.50
-    helmet: float = 0.70
-    head: float = 0.65          # Bare head
+    helmet: float = 0.65
+    head: float = 0.30          # Bare head
     vest: float = 0.65
-    gloves: float = 0.60
-    boots: float = 0.60
-    no_gloves: float = 0.60
-    no_boots: float = 0.60
-    fire: float = 0.40          # Stage 2: tightened — model is more confident on true fire
-    smoke: float = 0.35         # Stage 2: tightened — reduces false smoke alarms
-    cigarette: float = 0.50
+    gloves: float = 0.30
+    boots: float = 0.30
+    no_gloves: float = 0.35
+    no_boots: float = 0.35
+    fire: float = 0.30          # Safety critical — recall first
+    smoke: float = 0.25         # Safety critical — recall first
+    cigarette: float = 0.30
 
 class TemporalVoterConfig(BaseModel):
     fire_window: int = 5
@@ -57,7 +57,7 @@ class EdgeConfig(BaseModel):
     cooldown_seconds: int = 60
     db_path: str = "outbox.db"
     mjpeg_port: int = 8080
-    model_path: str = "models/best_s4.onnx"
+    model_path: str = "models/best_s5.onnx"
     cameras: List[CameraConfig] = Field(default_factory=lambda: [
         CameraConfig(
             id="cam-01",

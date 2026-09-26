@@ -1,15 +1,19 @@
 {
-  "model_version": "ppe_v1_s2_yolo11s",
+  "model_version": "ppe_s5_precision95",
+  "best_conf_precision": 0.65,
+  "best_conf_f1": 0.3,
   "confidence_thresholds": {
-    "fire": 0.65,
-    "smoke": 0.6,
-    "smoking": 0.7,
-    "helmet": 0.75,
-    "head": 0.7,
-    "vest": 0.7,
-    "gloves": 0.65,
-    "boots": 0.65,
-    "person": 0.6
+    "person": 0.5,
+    "helmet": 0.65,
+    "head": 0.3,
+    "vest": 0.65,
+    "gloves": 0.3,
+    "boots": 0.3,
+    "no_gloves": 0.35,
+    "no_boots": 0.35,
+    "fire": 0.3,
+    "smoke": 0.25,
+    "cigarette": 0.3
   },
   "temporal_voting": {
     "fire_smoke": {
