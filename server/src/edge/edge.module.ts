@@ -6,7 +6,7 @@ import { EventBusService } from '../common/event-bus.service';
 
 @Module({
   controllers: [EdgeController],
-  providers: [EdgeService, EdgeAuthGuard, EventBusService],
-  exports: [EdgeService, EventBusService],
+  providers: [EdgeService, EdgeAuthGuard],
+  exports: [EdgeService],
 })
 export class EdgeModule {}

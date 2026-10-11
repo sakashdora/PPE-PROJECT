@@ -5,7 +5,7 @@ import { EventBusService } from '../common/event-bus.service';
 
 @Module({
   controllers: [HealthController],
-  providers: [OfflineDetectorService, EventBusService],
+  providers: [OfflineDetectorService],
   exports: [OfflineDetectorService],
 })
 export class HealthModule {}

@@ -5,6 +5,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
+  private attempts = new Map<string, { count: number; until: number }>();
   constructor(private authService: AuthService) {}
 
   @Post('login')
@@ -12,13 +13,20 @@ export class AuthController {
   async login(
     @Body() body: { email?: string; password?: string },
     @Res({ passthrough: true }) res: Response,
+    @Req() req: any,
   ) {
-    const { email, password } = body;
-    if (!email || !password) {
+    const { email, password } = body || {};
+    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password || email.length > 254 || password.length > 256) {
       return res.status(400).json({ code: 'BAD_REQUEST', message: 'Email and password are required' });
     }
 
-    const { token, user } = await this.authService.login(email, password);
+    const key = req.ip || 'local';
+    if (this.attempts.size > 1000) for (const [ip, entry] of this.attempts) if (entry.until < Date.now()) this.attempts.delete(ip);
+    const attempt = this.attempts.get(key);
+    if (attempt && attempt.until > Date.now() && attempt.count >= 12) return res.status(429).json({ message: 'Too many sign-in attempts. Try again in one minute.' });
+    this.attempts.set(key, { count: attempt && attempt.until > Date.now() ? attempt.count + 1 : 1, until: Date.now() + 60000 });
+    const { token, user } = await this.authService.login(email.trim().toLowerCase(), password);
+    this.attempts.delete(key);
 
     // Set HTTP-only secure cookie
     res.cookie('token', token, {

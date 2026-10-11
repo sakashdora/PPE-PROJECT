@@ -1,194 +1,83 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventBusService } from '../common/event-bus.service';
 import { AuditService } from '../audit/audit.service';
+import { alertDto, alertInclude } from '../common/transport';
 import * as fs from 'fs';
 import * as path from 'path';
-
 export interface TransitionDto {
-  action?: 'ack' | 'resolve' | 'false_alarm';
-  status?: string;
-  expectedVersion: number;
-  note?: string;
+    action?: 'ack' | 'resolve' | 'false_alarm';
+    status?: string;
+    expectedVersion: number;
+    note?: string;
 }
-
 @Injectable()
 export class AlertsService {
-  private readonly allowedFrom = {
-    ack: ['OPEN'],
-    resolve: ['OPEN', 'ACKNOWLEDGED'],
-    false_alarm: ['OPEN', 'ACKNOWLEDGED'],
-  } as const;
-
-  constructor(
-    private prisma: PrismaService,
-    private eventBus: EventBusService,
-    private audit: AuditService,
-  ) {}
-
-  async listAlerts(query: {
-    status?: string;
-    severity?: string;
-    cameraId?: string;
-    camera_id?: string;
-    from?: string;
-    to?: string;
-    cursor?: any;
-    limit?: number;
-  }) {
-    const take = Math.min(query.limit || 50, 100);
-    const cursor = query.cursor ? (typeof query.cursor === 'string' ? { id: query.cursor } : undefined) : undefined;
-
-    const where: any = {};
-    if (query.status) where.status = query.status.toUpperCase();
-    if (query.severity) where.severity = query.severity.toUpperCase();
-    if (query.camera_id || query.cameraId) where.cameraId = query.camera_id || query.cameraId;
-
-    if (query.from || query.to) {
-      where.firstSeenAt = {};
-      if (query.from) where.firstSeenAt.gte = new Date(query.from);
-      if (query.to) where.firstSeenAt.lte = new Date(query.to);
+    constructor(private prisma: PrismaService, private eventBus: EventBusService, private audit: AuditService) { }
+    async listAlerts(query: any) {
+        const limit = query.limit ?? 50;
+        if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+            throw new BadRequestException('Limit must be between 1 and 100');
+        const where: any = {};
+        if (query.status)
+            where.status = query.status.toLowerCase() === 'active' ? { in: ['OPEN', 'ACKNOWLEDGED'] } : query.status.toUpperCase();
+        if (query.severity)
+            where.severity = query.severity.toUpperCase();
+        if (query.cameraId || query.camera_id)
+            where.cameraId = query.cameraId || query.camera_id;
+        if (query.from || query.to) {
+            where.firstSeenAt = {};
+            for (const [key, value] of [['gte', query.from], ['lte', query.to]])
+                if (value) {
+                    const date = new Date(value);
+                    if (!Number.isFinite(date.getTime()))
+                        throw new BadRequestException('Invalid date filter');
+                    where.firstSeenAt[key] = date;
+                }
+        }
+        const rows = await this.prisma.alert.findMany({ where, take: limit + 1, orderBy: [{ firstSeenAt: 'desc' }, { id: 'desc' }], ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}), include: alertInclude });
+        return { items: rows.slice(0, limit).map(alertDto), nextCursor: rows.length > limit ? rows[limit - 1].id : null };
     }
-
-    const items = await this.prisma.alert.findMany({
-      where,
-      orderBy: [{ firstSeenAt: 'desc' }, { id: 'desc' }],
-      take,
-      cursor,
-      skip: cursor ? 1 : 0,
-      include: {
-        camera: { select: { id: true, name: true, sector: { select: { id: true, name: true } } } },
-      },
-    });
-
-    return items.map((a) => ({
-      ...a,
-      items: JSON.parse(a.items || '[]'),
-    }));
-  }
-
-  async getAlertById(id: string) {
-    const alert = await this.prisma.alert.findUnique({
-      where: { id },
-      include: {
-        camera: { select: { id: true, name: true, sector: { select: { id: true, name: true } } } },
-      },
-    });
-    if (!alert) {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: `Alert ${id} not found` });
+    async getAlertById(id: string) {
+        const alert = await this.prisma.alert.findUnique({ where: { id }, include: alertInclude });
+        if (!alert)
+            throw new NotFoundException('Incident not found');
+        return alertDto(alert);
     }
-    return {
-      ...alert,
-      items: JSON.parse(alert.items || '[]'),
-    };
-  }
-
-  async getSnapshotPath(id: string): Promise<string> {
-    const alert = await this.prisma.alert.findUnique({ where: { id }, select: { snapshotPath: true } });
-    if (!alert || !alert.snapshotPath) {
-      throw new NotFoundException({ code: 'SNAPSHOT_NOT_FOUND', message: 'Snapshot does not exist for this alert' });
+    async getSnapshotPath(id: string) {
+        const alert = await this.prisma.alert.findUnique({ where: { id } });
+        if (!alert?.snapshotPath)
+            throw new NotFoundException('No evidence snapshot for this incident');
+        const root = path.resolve(process.env.SNAPSHOTS_DIR || 'snapshots');
+        const target = path.resolve(alert.snapshotPath);
+        if (!target.startsWith(root + path.sep) || !fs.existsSync(target))
+            throw new NotFoundException('Snapshot is unavailable');
+        return target;
     }
-    const resolvedPath = path.resolve(alert.snapshotPath);
-    if (!fs.existsSync(resolvedPath)) {
-      throw new NotFoundException({ code: 'FILE_NOT_FOUND', message: 'Snapshot file missing from storage' });
-    }
-    return resolvedPath;
-  }
-
-  async transition(id: string, user: any, dto: TransitionDto) {
-    let action = dto.action;
-    if (!action && dto.status) {
-      const s = String(dto.status).toUpperCase();
-      if (s === 'ACKNOWLEDGED' || s === 'ACK') action = 'ack';
-      else if (s === 'RESOLVED' || s === 'RESOLVE') action = 'resolve';
-      else if (s === 'FALSE_ALARM') action = 'false_alarm';
-    }
-
-    if (!action || !this.allowedFrom[action]) {
-      throw new BadRequestException({ code: 'INVALID_ACTION', message: `Unknown action or status ${action || dto.status}` });
-    }
-
-    const nextStatusMap = {
-      ack: 'ACKNOWLEDGED',
-      resolve: 'RESOLVED',
-      false_alarm: 'FALSE_ALARM',
-    };
-    const nextStatus = nextStatusMap[action];
-
-    const current = await this.prisma.alert.findUnique({ where: { id } });
-    if (!current) {
-      throw new NotFoundException({ code: 'NOT_FOUND', message: `Alert ${id} not found` });
-    }
-
-    // CRITICAL alerts cannot be auto-resolved; only supervisor can clear
-    if (dto.action === 'resolve' && current.severity === 'CRITICAL' && user.role === 'VIEWER') {
-      throw new ConflictException({ code: 'FORBIDDEN', message: 'CRITICAL alerts require Supervisor or Admin resolution' });
-    }
-
-    // Compare-and-swap update
-    const updateResult = await this.prisma.$transaction(async (tx) => {
-      const r = await tx.alert.updateMany({
-        where: {
-          id,
-          version: dto.expectedVersion,
-          status: { in: this.allowedFrom[action] as any },
-        },
-        data: {
-          status: nextStatus,
-          version: { increment: 1 },
-          ackById: user.id,
-          ackAt: new Date(),
-          note: dto.note || current.note,
-        },
-      });
-
-      if (r.count === 0) {
-        throw new ConflictException({
-          code: 'STALE_OR_INVALID_TRANSITION',
-          message: `Alert version mismatch or invalid status transition. Expected version ${dto.expectedVersion}, current version is ${current.version}.`,
+    async transition(id: string, user: any, dto: TransitionDto) {
+        if (!Number.isInteger(dto?.expectedVersion) || dto.expectedVersion < 1)
+            throw new BadRequestException('A positive integer expectedVersion is required');
+        if (dto.note !== undefined && (typeof dto.note !== 'string' || dto.note.length > 2000))
+            throw new BadRequestException('Notes must be at most 2000 characters');
+        const action = dto.action || ({ ACKNOWLEDGED: 'ack', RESOLVED: 'resolve', FALSE_ALARM: 'false_alarm' }[String(dto.status).toUpperCase()]);
+        if (!['ack', 'resolve', 'false_alarm'].includes(action))
+            throw new BadRequestException('Invalid incident action');
+        const from = action === 'ack' ? 'OPEN' : 'ACKNOWLEDGED';
+        const next = { ack: 'ACKNOWLEDGED', resolve: 'RESOLVED', false_alarm: 'FALSE_ALARM' }[action];
+        const result = await this.prisma.$transaction(async (tx) => {
+            const current = await tx.alert.findUnique({ where: { id } });
+            if (!current)
+                throw new NotFoundException('Incident not found');
+            const update = await tx.alert.updateMany({ where: { id, version: dto.expectedVersion, status: from }, data: { status: next, version: { increment: 1 }, note: dto.note ?? current.note, ...(action === 'ack' ? { ackById: user.name || user.id, ackAt: new Date() } : { resolvedById: user.id, resolvedAt: new Date() }) } });
+            if (!update.count)
+                throw new ConflictException('This incident changed or requires acknowledgment first. Refresh and try again.');
+            const saved = await tx.alert.findUniqueOrThrow({ where: { id }, include: alertInclude });
+            const data = alertDto(saved);
+            const event = await tx.alertEvent.create({ data: { alertId: id, kind: 'updated', payload: JSON.stringify(data) } });
+            await tx.auditLog.create({ data: { userId: user.id, action, entity: 'alert', entityId: id, meta: JSON.stringify({ from: current.status, to: next, note: dto.note }) } });
+            return { data, seq: event.seq };
         });
-      }
-
-      const updated = await tx.alert.findUniqueOrThrow({ where: { id } });
-
-      const ev = await tx.alertEvent.create({
-        data: {
-          alertId: id,
-          kind: 'updated',
-          payload: JSON.stringify(updated),
-          createdAt: new Date(),
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          userId: user.id,
-          action: action,
-          entity: 'alert',
-          entityId: id,
-          meta: JSON.stringify({ from: current.status, to: nextStatus, note: dto.note }),
-          at: new Date(),
-        },
-      });
-
-      return { alert: updated, seq: ev.seq };
-    });
-
-    // Emit event on WebSocket bus AFTER commit
-    this.eventBus.emit('alert', {
-      seq: updateResult.seq,
-      type: 'alert.updated',
-      data: updateResult.alert,
-    });
-
-    return {
-      ...updateResult.alert,
-      items: JSON.parse(updateResult.alert.items || '[]'),
-    };
-  }
+        this.eventBus.emit('alert', { seq: result.seq, type: 'alert.updated', data: result.data });
+        return result.data;
+    }
 }

@@ -28,6 +28,9 @@ class VideoStreamReader:
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._frame_count = 0
+        self.last_frame_at = None
+        self._sequence = 0
+        self._read_sequence = -1
 
     def start(self) -> "VideoStreamReader":
         if self._running:
@@ -46,7 +49,8 @@ class VideoStreamReader:
     def read(self) -> Tuple[bool, Optional[np.ndarray]]:
         """Returns (is_new_or_valid, frame)."""
         with self._lock:
-            if self._frame is not None:
+            if self._frame is not None and self._sequence != self._read_sequence and self.last_frame_at and time.time() - self.last_frame_at < 2:
+                self._read_sequence = self._sequence
                 return True, self._frame.copy()
         return False, None
 
@@ -88,6 +92,8 @@ class VideoStreamReader:
 
             with self._lock:
                 self._frame = frame
+                self._sequence += 1
+                self.last_frame_at = time.time()
 
             elapsed = time.time() - start_t
             sleep_time = max(0.001, self.interval - elapsed)
@@ -116,6 +122,8 @@ class VideoStreamReader:
 
                 with self._lock:
                     self._frame = frame
+                    self._sequence += 1
+                    self.last_frame_at = time.time()
 
                 time.sleep(self.interval)
 

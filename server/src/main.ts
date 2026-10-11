@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { WsAdapter } from '@nestjs/platform-ws';
 import * as cookieParser from 'cookie-parser';
@@ -13,9 +14,21 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // 3. Strict CORS (allows dashboard origin with credentials)
-  const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+  app.enableShutdownHooks();
+  const allowedOrigin = process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:3000';
   app.enableCors({
-    origin: [allowedOrigin, 'http://127.0.0.1:3000'],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const allowed = allowedOrigin.split(',');
+      if (
+        allowed.includes(origin) ||
+        origin === 'http://127.0.0.1:3000' ||
+        /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+):3000$/.test(origin)
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Edge-Api-Key', 'If-None-Match'],

@@ -57,6 +57,7 @@ class AudioAlarmController {
   }
 
   public startSiren() {
+    if (!this.unlocked || this.muted) return;
     if (this.isSirenPlaying) return;
     const ctx = this.initCtx();
     if (!ctx) return;

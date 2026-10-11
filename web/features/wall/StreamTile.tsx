@@ -22,10 +22,10 @@ function drawLabel(
   textColor = "#F3EFE6"
 ) {
   ctx.save();
-  ctx.font = "bold 9px 'JetBrains Mono', monospace";
+  ctx.font = "bold 11px 'JetBrains Mono', monospace";
   const metrics = ctx.measureText(text);
-  const padX = 4;
-  const bannerH = 15;
+  const padX = 6;
+  const bannerH = 18;
   ctx.fillStyle = bgColor;
   ctx.fillRect(x, y - bannerH, metrics.width + padX * 2, bannerH);
   ctx.fillStyle = textColor;
@@ -43,7 +43,7 @@ function drawBox(
   color: string,
   opts: { lineWidth?: number; dash?: number[]; fillAlpha?: number } = {}
 ) {
-  const { lineWidth = 1.5, dash = [], fillAlpha = 0 } = opts;
+  const { lineWidth = 2.2, dash = [], fillAlpha = 0 } = opts;
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;

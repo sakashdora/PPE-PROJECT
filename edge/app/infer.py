@@ -46,8 +46,9 @@ class ONNXRuntimeEngine(BaseInferenceEngine):
         self.model_path = model_path
         import onnxruntime as ort
         opts = ort.SessionOptions()
-        opts.intra_op_num_threads = 2
+        opts.intra_op_num_threads = 4
         opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         self.session = ort.InferenceSession(model_path, sess_options=opts, providers=["CPUExecutionProvider"])
         self.input_name = self.session.get_inputs()[0].name
         self.input_shape = self.session.get_inputs()[0].shape  # [1, 3, 640, 640]
@@ -128,6 +129,15 @@ class ONNXRuntimeEngine(BaseInferenceEngine):
                     bbox=[max(0.0, x1), max(0.0, y1), min(1.0, x2), min(1.0, y2)]
                 ))
 
+        if not (len(outputs.shape) == 3 and outputs.shape[2] == 6):
+            from app.postprocess import calculate_iou
+            kept = []
+            for candidate in sorted(detections, key=lambda d: d.confidence, reverse=True):
+                if not any(candidate.class_id == other.class_id and calculate_iou(candidate.bbox, other.bbox) > 0.5 for other in kept):
+                    kept.append(candidate)
+                if len(kept) >= 300:
+                    break
+            detections = kept
         return detections
 
 class MockInferenceEngine(BaseInferenceEngine):
@@ -173,12 +183,15 @@ class MockInferenceEngine(BaseInferenceEngine):
 
         return detections
 
-def get_inference_engine(model_path: str, thresholds: ThresholdsConfig) -> BaseInferenceEngine:
+def get_inference_engine(model_path: str, thresholds: ThresholdsConfig, mode: str = "onnx") -> BaseInferenceEngine:
     """Factory to instantiate best available runtime engine."""
+    if mode == "mock":
+        logger.warning("Explicit demonstration detector enabled")
+        return MockInferenceEngine(thresholds)
     p = Path(model_path)
     if p.exists() and p.suffix == ".onnx":
         try:
             return ONNXRuntimeEngine(model_path, thresholds)
         except Exception as e:
-            logger.warning(f"Could not load ONNX model ({e}). Using Mock engine.")
-    return MockInferenceEngine(thresholds)
+            raise RuntimeError(f"Could not load operational ONNX model: {e}") from e
+    raise FileNotFoundError(f"Operational ONNX model not found: {model_path}")

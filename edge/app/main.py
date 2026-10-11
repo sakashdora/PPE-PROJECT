@@ -1,116 +1,99 @@
-"""
-Factory Safety AI - Edge Stream Orchestrator
-Main edge daemon running inference, temporal voting, zone evaluation,
-local alarm activation, and outbox synchronization across all configured camera streams.
-"""
-
-import os
-import sys
-import time
-import json
-import uuid
-import signal
-import logging
+"""Edge orchestration: fresh-frame decisions, local latch, durable delivery and config sync."""
 import argparse
+import logging
+import signal
+import threading
+import time
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
 import cv2
-import numpy as np
-
 from app.config import EdgeConfig, load_config
 from app.stream import VideoStreamReader
-from app.infer import get_inference_engine, BaseInferenceEngine
-from app.postprocess import (
-    Detection,
-    associate_person_ppe,
-    point_in_polygon,
-    box_center,
-    TemporalVoter,
-    AlertCooldown,
-)
-from app.alarm import alarm_controller
+from app.infer import get_inference_engine, MockInferenceEngine
+from app.postprocess import associate_person_ppe, point_in_polygon, box_center, TemporalVoter, AlertCooldown, filter_and_validate_detections
+from app.alarm import alarm_controller, LocalAlarmController
 from app.outbox import OutboxManager
 from app.mjpeg import frame_hub, start_mjpeg_server
 from app.heartbeat import HeartbeatClient
+import requests
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("edge.main")
-
-# Bounding box color palette (BGR)
-COLORS = {
-    "person": (240, 200, 0),       # Cyan-yellow
-    "helmet": (50, 205, 50),       # Green
-    "head": (0, 0, 255),           # Bright Red (bare head = violation!)
-    "vest": (0, 215, 255),         # Hi-vis Amber/Orange
-    "gloves": (255, 144, 30),      # Blue
-    "boots": (205, 90, 106),       # Slate
-    "no_gloves": (0, 0, 220),      # Red
-    "no_boots": (0, 0, 220),       # Red
-    "fire": (0, 69, 255),          # Bright Fire Orange/Red
-    "smoke": (128, 128, 128),      # Smoke Grey
-    "cigarette": (0, 165, 255),    # Hazard Orange
-}
 
 class EdgeWorker:
     def __init__(self, config: EdgeConfig):
         self.config = config
         self.running = False
-
-        # Subsystems
-        api_key = getattr(config, "api_key", "edge-api-key-factory-plant-01")
-        self.outbox = OutboxManager(config.db_path, api_key=api_key)
+        self._lock = threading.RLock()
+        self._incidents = {}
+        self._pending_memory = {}
         self.voter = TemporalVoter()
         self.cooldown = AlertCooldown(config.cooldown_seconds)
-        self.engine = get_inference_engine(config.model_path, config.thresholds)
+        self.engine = get_inference_engine(config.model_path, config.thresholds, config.mode)
+        self.outbox = OutboxManager(config.db_path, api_key=config.api_key)
+        configured = LocalAlarmController(config.relay_pin, state_path=str(Path(config.db_path).with_name("alarm_state.json")))
+        alarm_controller.__dict__.update(configured.__dict__)
+        self.snapshot_dir = Path(config.snapshot_dir)
+        self.readers = {c.id: VideoStreamReader(c.id, c.source, c.fps_target) for c in config.cameras}
+        self.fps_counters = {c.id: 0.0 for c in config.cameras}
+        self.latency_ms = {c.id: 0.0 for c in config.cameras}
+        self._processed_at = {}
+        self.heartbeat = HeartbeatClient(config.server_url, config.node_id, config.api_key, config.heartbeat_interval_sec, self._apply_config)
+        self.heartbeat.set_telemetry_providers(lambda: self.fps_counters.copy(), lambda: self.latency_ms.copy(), self._camera_telemetry)
+        self.heartbeat.detector_mode_provider = lambda: "mock" if isinstance(self.engine, MockInferenceEngine) else "onnx"
+        self.heartbeat.alarm_adapter_provider = lambda: "gpio" if alarm_controller.gpio_available else "unconfigured"
+        self._mjpeg = None
 
-        # Heartbeat & Telemetry Subsystem
-        self.heartbeat = HeartbeatClient(
-            server_url=config.server_url,
-            node_id=config.node_id,
-            api_key=api_key,
-            interval_sec=config.heartbeat_interval_sec,
-        )
+    def _camera_telemetry(self):
+        with self._lock:
+            return [{"id": key, "status": "online" if reader.last_frame_at and time.time()-reader.last_frame_at < 15 else "stalled",
+                     "lastFrameAt": datetime.fromtimestamp(reader.last_frame_at, timezone.utc).isoformat() if reader.last_frame_at else None,
+                     "fps": self.fps_counters.get(key, 0), "latencyMs": self.latency_ms.get(key, 0)} for key, reader in self.readers.items()]
 
-        # Camera readers
-        self.readers: Dict[str, VideoStreamReader] = {}
-        for cam in config.cameras:
-            self.readers[cam.id] = VideoStreamReader(cam.id, cam.source, cam.fps_target)
-
-        # Configure telemetry providers
-        self.fps_counters: Dict[str, float] = {cam.id: 0.0 for cam in config.cameras}
-        self.latency_ms: Dict[str, float] = {cam.id: 0.0 for cam in config.cameras}
-        self.heartbeat.set_telemetry_providers(
-            fps_fn=lambda: self.fps_counters,
-            latency_fn=lambda: self.latency_ms,
-            cameras_fn=lambda: list(self.readers.keys()),
-        )
-
-        # Snapshot storage directory
-        self.snapshot_dir = Path("snapshots")
-        self.snapshot_dir.mkdir(parents=True, exist_ok=True)
-        self.last_heartbeat = 0.0
+    def _apply_config(self, _version):
+        try:
+            response = requests.get(self.config.server_url + "/edge/config", headers={"X-Edge-Api-Key": self.config.api_key}, timeout=5)
+            response.raise_for_status()
+            payload = response.json()
+            values = self.config.model_dump()
+            for key in ["cameras", "thresholds", "voter", "cooldown_seconds"]:
+                if key in payload:
+                    values[key] = payload[key]
+            selected = payload.get("activeModel")
+            model_names = {"best_s5": "best_s5.onnx", "best_s4": "best_s4.onnx", "ppe_v1_s2_yolo11s": "best_s2.onnx"}
+            if selected in model_names:
+                values["model_path"] = str(Path(self.config.model_path).parent / model_names[selected])
+            updated = EdgeConfig(**values)
+            engine = get_inference_engine(updated.model_path, updated.thresholds, updated.mode)
+            with self._lock:
+                for key, reader in list(self.readers.items()):
+                    new = next((c for c in updated.cameras if c.id == key), None)
+                    if not new or new.source != reader.source or new.fps_target != reader.fps_target:
+                        reader.stop()
+                        del self.readers[key]
+                for camera in updated.cameras:
+                    if camera.id not in self.readers:
+                        self.readers[camera.id] = VideoStreamReader(camera.id, camera.source, camera.fps_target).start()
+                self.config = updated
+                self.engine = engine
+                self.voter = TemporalVoter()
+                self.cooldown = AlertCooldown(updated.cooldown_seconds)
+                self.fps_counters = {c.id: self.fps_counters.get(c.id, 0) for c in updated.cameras}
+                self.latency_ms = {c.id: self.latency_ms.get(c.id, 0) for c in updated.cameras}
+            return True
+        except Exception:
+            logger.exception("Configuration was not applied; keeping last working configuration")
+            return False
 
     def start(self):
         self.running = True
-        logger.info(f"[*] Starting Edge Worker Node: {self.config.node_id}")
-
-        # 1. Start SQLite Outbox Worker
-        self.outbox.start_worker(self.config.server_url, poll_interval=2.0)
-
-        # 2. Start Heartbeat Client
-        self.heartbeat.start()
-
-        # 3. Start Video Readers
-        for cam_id, reader in self.readers.items():
+        self._apply_config(0)
+        self.outbox.start_worker(self.config.server_url)
+        for reader in self.readers.values():
             reader.start()
-
-        # 4. Start MJPEG Stream Server
-        start_mjpeg_server(port=self.config.mjpeg_port)
-
-        logger.info("[OK] All edge pipelines running. Commencing real-time inference loop.")
+        self._mjpeg = start_mjpeg_server(self.config.mjpeg_port)
+        self.heartbeat.start()
         self._run_loop()
 
     def stop(self):
@@ -119,228 +102,151 @@ class EdgeWorker:
         for reader in self.readers.values():
             reader.stop()
         self.outbox.stop_worker()
-        alarm_controller.silence()
-        logger.info("[*] Edge Worker stopped cleanly.")
+        if self._mjpeg:
+            self._mjpeg.shutdown()
+        # Preserve latched GPIO and persisted IDs until supervisor-confirmed clearing.
 
     def _run_loop(self):
-        frame_intervals = {cam.id: 1.0 / max(1, cam.fps_target) for cam in self.config.cameras}
-        last_processed = {cam.id: 0.0 for cam in self.config.cameras}
-
         while self.running:
-            now = time.time()
-            for cam in self.config.cameras:
-                if now - last_processed[cam.id] >= frame_intervals[cam.id]:
-                    last_processed[cam.id] = now
-                    reader = self.readers.get(cam.id)
+            with self._lock:
+                for camera in self.config.cameras:
+                    reader = self.readers.get(camera.id)
                     if not reader:
                         continue
-
-                    ret, frame = reader.read()
-                    if not ret or frame is None:
+                    valid, frame = reader.read()
+                    if not valid:
                         continue
+                    now = time.monotonic()
+                    try:
+                        self._process_camera_frame(camera, frame)
+                        self.latency_ms[camera.id] = round((time.monotonic()-now)*1000, 1)
+                        previous = self._processed_at.get(camera.id, now)
+                        self.fps_counters[camera.id] = round(1/max(time.monotonic()-previous, .001), 1) if previous != now else 0
+                        self._processed_at[camera.id] = time.monotonic()
+                    except Exception:
+                        logger.exception("Camera processing failed: %s", camera.id)
+                for alert_id, payload in list(self._pending_memory.items()):
+                    try:
+                        self.outbox.enqueue_alert(payload)
+                        del self._pending_memory[alert_id]
+                    except Exception:
+                        break
+            time.sleep(.01)
 
-                    t0 = time.time()
-                    self._process_camera_frame(cam, frame)
-                    infer_time = (time.time() - t0) * 1000.0
-                    self.latency_ms[cam.id] = round(infer_time, 1)
-                    self.fps_counters[cam.id] = round(1.0 / max(0.001, (time.time() - now)), 1)
+    def _hazard(self, cam, frame, key, present, detections, kind, window, threshold, zone):
+        triggered, votes = self.voter.vote(key, present, window, threshold)
+        if not triggered:
+            self._incidents.pop(key, None)
+            return
+        if key in self._incidents:
+            return
+        if not self.cooldown.should_fire(key):
+            return
+        alert_id = str(uuid.uuid4())
+        self._incidents[key] = alert_id
+        detector = detections[0] if detections else None
+        if kind in ["fire", "smoke"]:
+            alarm_controller.trigger_critical(cam.id, kind, votes, alert_id=alert_id)
+        elif kind == "smoking":
+            alarm_controller.trigger_warning(cam.id, kind, votes, alert_id=alert_id)
+        self._emit_alert(cam, zone, "CRITICAL" if kind in ["fire","smoke"] else "WARNING", kind,
+                         ["cigarette" if kind == "smoking" else kind], detector.confidence if detector else 0,
+                         votes, detector.bbox if detector else [0,0,1,1], frame, alert_id)
 
-
-            time.sleep(0.01)
-
-    def _process_camera_frame(self, cam, frame: np.ndarray):
-        h, w = frame.shape[:2]
-
-        # 1. Execute Inference
+    def _process_camera_frame(self, cam, frame):
         detections = self.engine.infer(frame)
-
-        # 2. Check Critical Hazards (Fire / Smoke) across whole frame
-        fire_detections = [d for d in detections if d.class_name == "fire"]
-        smoke_detections = [d for d in detections if d.class_name == "smoke"]
-
-        is_fire_present = len(fire_detections) > 0
-        is_smoke_present = len(smoke_detections) > 0
-
-        # Temporal Voting for Fire (2/5)
-        fire_trig, f_votes = self.voter.vote(
-            f"{cam.id}_fire", is_fire_present,
-            self.config.voter.fire_window, self.config.voter.fire_threshold
-        )
-        if fire_trig:
-            alert_id = None
-            if self.cooldown.should_fire(f"{cam.id}_fire_alert"):
-                alert_id = self._emit_alert(
-                    cam=cam,
-                    zone_id=cam.zones[0].id if cam.zones else "global",
-                    severity="CRITICAL",
-                    alert_type="fire",
-                    items=["fire"],
-                    confidence=fire_detections[0].confidence if fire_detections else 0.85,
-                    votes=f_votes,
-                    bbox=fire_detections[0].bbox if fire_detections else [0, 0, 1, 1],
-                    frame=frame
-                )
-            alarm_controller.trigger_critical(cam.id, "fire", f"Votes: {f_votes}", alert_id=alert_id)
-
-        # Temporal Voting for Smoke (2/5)
-        smoke_trig, s_votes = self.voter.vote(
-            f"{cam.id}_smoke", is_smoke_present,
-            self.config.voter.smoke_window, self.config.voter.smoke_threshold
-        )
-        if smoke_trig:
-            alert_id = None
-            if self.cooldown.should_fire(f"{cam.id}_smoke_alert"):
-                alert_id = self._emit_alert(
-                    cam=cam,
-                    zone_id=cam.zones[0].id if cam.zones else "global",
-                    severity="CRITICAL",
-                    alert_type="smoke",
-                    items=["smoke"],
-                    confidence=smoke_detections[0].confidence if smoke_detections else 0.80,
-                    votes=s_votes,
-                    bbox=smoke_detections[0].bbox if smoke_detections else [0, 0, 1, 1],
-                    frame=frame
-                )
-            alarm_controller.trigger_critical(cam.id, "smoke", f"Votes: {s_votes}", alert_id=alert_id)
-
-        # 3. Check Zones: PPE Compliance & Restricted Smoking
+        detections = filter_and_validate_detections(detections)
+        for kind in ["fire", "smoke"]:
+            found = [d for d in detections if d.class_name == kind]
+            self._hazard(cam, frame, cam.id+"_"+kind, bool(found), found, kind,
+                         getattr(self.config.voter, kind+"_window"), getattr(self.config.voter, kind+"_threshold"), "global")
         for zone in cam.zones:
-            # Filter detections inside zone polygon
-            zone_detections = []
-            for d in detections:
-                cx, cy = box_center(d.bbox)
-                if point_in_polygon([cx, cy], zone.polygon):
-                    zone_detections.append(d)
-
-            # Check Smoking in Restricted Zone
+            if zone.type == "exclusion":
+                continue
+            selected = [d for d in detections if point_in_polygon(box_center(d.bbox), zone.polygon)]
             if zone.type == "smoking_restricted":
-                cigarettes = [d for d in zone_detections if d.class_name == "cigarette"]
-                is_smoking = len(cigarettes) > 0
-                smk_trig, smk_votes = self.voter.vote(
-                    f"{cam.id}_{zone.id}_smoking", is_smoking,
-                    self.config.voter.smoking_window, self.config.voter.smoking_threshold
-                )
-                if smk_trig:
-                    alert_id = None
-                    if self.cooldown.should_fire(f"{cam.id}_{zone.id}_smoking_alert"):
-                        alert_id = self._emit_alert(
-                            cam=cam,
-                            zone_id=zone.id,
-                            severity="WARNING",
-                            alert_type="smoking",
-                            items=["cigarette"],
-                            confidence=cigarettes[0].confidence if cigarettes else 0.75,
-                            votes=smk_votes,
-                            bbox=cigarettes[0].bbox if cigarettes else [0, 0, 1, 1],
-                            frame=frame
-                        )
-                    alarm_controller.trigger_warning(cam.id, "smoking", f"Zone: {zone.name} | Votes: {smk_votes}", alert_id=alert_id)
+                found = [d for d in selected if d.class_name == "cigarette"]
+                self._hazard(cam, frame, cam.id+"_"+zone.id+"_smoking", bool(found), found, "smoking", self.config.voter.smoking_window, self.config.voter.smoking_threshold, zone.id)
+            people = associate_person_ppe(selected, zone.required_ppe)
+            for item in zone.required_ppe:
+                violations = [person for person in people if item in person.missing_items]
+                key = cam.id+"_"+zone.id+"_ppe_"+item
+                triggered, votes = self.voter.vote(key, bool(violations), self.config.voter.ppe_window, self.config.voter.ppe_threshold)
+                if triggered and self.cooldown.should_fire(key):
+                    anchors = [d for d in selected if d.class_name == "person"]
+                    self._emit_alert(cam, zone.id, "COMPLIANCE", "missing_ppe", [item], max((d.confidence for d in anchors), default=0), votes, violations[0].person_bbox if violations else [0,0,1,1], frame)
+        annotated = frame.copy()
+        h, w = frame.shape[:2]
+        font_scale = max(0.65, min(1.15, w / 1150.0))
+        font_thick = max(2, int(round(font_scale * 2.2)))
+        box_thick = max(2, int(round(w / 450.0)))
+        pad_x = max(5, int(font_scale * 7))
+        pad_y = max(4, int(font_scale * 5))
 
-            # Check Person-PPE Association
-            person_statuses = associate_person_ppe(zone_detections, zone.required_ppe)
-            for idx, p_stat in enumerate(person_statuses):
-                has_violation = len(p_stat.missing_items) > 0
-                v_key = f"{cam.id}_{zone.id}_ppe_{p_stat.track_id or idx}"
-                ppe_trig, ppe_votes = self.voter.vote(
-                    v_key, has_violation,
-                    self.config.voter.ppe_window, self.config.voter.ppe_threshold
-                )
+        for detection in detections:
+            x1, y1, x2, y2 = [int(v * s) for v, s in zip(detection.bbox, [w, h, w, h])]
+            x1, y1 = max(0, min(w - 1, x1)), max(0, min(h - 1, y1))
+            x2, y2 = max(0, min(w - 1, x2)), max(0, min(h - 1, y2))
+            is_violation = detection.class_name in ["fire", "smoke", "head", "no_gloves", "no_boots"]
+            color = (30, 30, 240) if is_violation else (0, 220, 0)
+            if detection.class_name in ["fire", "smoke"]:
+                color = (0, 100, 255)
+            elif detection.class_name == "cigarette":
+                color = (0, 165, 255)
 
-                if ppe_trig:
-                    if self.cooldown.should_fire(v_key):
-                        self._emit_alert(
-                            cam=cam,
-                            zone_id=zone.id,
-                            severity=zone.severity,
-                            alert_type="missing_ppe",
-                            items=p_stat.missing_items,
-                            confidence=0.88,
-                            votes=ppe_votes,
-                            bbox=p_stat.person_bbox,
-                            frame=frame
-                        )
+            cv2.rectangle(annotated, (x1, y1), (x2, y2), color, box_thick)
+            lbl = f"{detection.class_name.upper().replace('_', ' ')} {detection.confidence:.0%}"
+            (tw, th), _ = cv2.getTextSize(lbl, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thick)
 
-        # 4. Render Annotations & Push to MJPEG Hub
-        annotated = self._annotate_frame(frame, detections, cam.zones)
+            badge_y1 = y1 - th - 2 * pad_y
+            badge_y2 = y1
+            text_y = y1 - pad_y
+            if badge_y1 < 0:
+                badge_y1 = y1
+                badge_y2 = y1 + th + 2 * pad_y
+                text_y = y1 + th + pad_y
+
+            badge_x2 = min(w - 1, x1 + tw + 2 * pad_x)
+            cv2.rectangle(annotated, (x1, badge_y1), (badge_x2, badge_y2), color, -1)
+
+            brightness = color[0] * 0.114 + color[1] * 0.587 + color[2] * 0.299
+            text_color = (0, 0, 0) if brightness > 150 else (255, 255, 255)
+            cv2.putText(annotated, lbl, (x1 + pad_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, text_color, font_thick, cv2.LINE_AA)
+
+        if self.config.mode == "mock" or cam.source == "synthetic":
+            cv2.putText(annotated, "DEMONSTRATION FEED", (12, 45), cv2.FONT_HERSHEY_SIMPLEX, .55, (0, 170, 255), 2)
         frame_hub.update_frame(cam.id, annotated)
 
-    def _emit_alert(self, cam, zone_id: str, severity: str, alert_type: str, items: List[str],
-                    confidence: float, votes: str, bbox: List[float], frame: np.ndarray) -> str:
-        """Builds alert schema, saves snapshot, and enqueues to transactional SQLite outbox."""
-        alert_id = str(uuid.uuid4())
-        ts = time.strftime("%Y-%m-%dT%H:%M:%S") + f".{(time.time()%1)*1000:03.0f}+05:30"
-
-        # Save snapshot
-        date_folder = self.snapshot_dir / time.strftime("%Y/%m/%d")
-        date_folder.mkdir(parents=True, exist_ok=True)
-        snapshot_file = date_folder / f"{alert_id}.jpg"
-        cv2.imwrite(str(snapshot_file), frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-
-        alert_payload = {
-            "id": alert_id,
-            "ts": ts,
-            "camera_id": cam.id,
-            "sector": cam.sector,
-            "zone_id": zone_id,
-            "severity": severity,
-            "type": alert_type,
-            "items": items,
-            "confidence": round(confidence, 2),
-            "votes": votes,
-            "model_version": Path(self.config.model_path).stem,
-            "snapshot_path": str(snapshot_file).replace("\\", "/"),
-            "bbox": [round(c, 4) for c in bbox]
-        }
-
-        self.outbox.enqueue_alert(alert_payload)
-        logger.info(f"[ALERT EMITTED] {severity} - {alert_type} on {cam.id} ({votes})")
+    def _emit_alert(self, cam, zone_id, severity, alert_type, items, confidence, votes, bbox, frame, alert_id=None):
+        alert_id = alert_id or str(uuid.uuid4())
+        payload = {"id":alert_id,"ts":datetime.now(timezone.utc).isoformat(),"camera_id":cam.id,"sector":cam.sector,"zone_id":zone_id,
+                   "severity":severity,"type":alert_type,"items":items,"confidence":round(confidence,3),"votes":votes,
+                   "model_version":Path(self.config.model_path).stem,"bbox":bbox}
+        try:
+            directory = self.snapshot_dir / datetime.now(timezone.utc).strftime("%Y/%m/%d")
+            directory.mkdir(parents=True, exist_ok=True)
+            snapshot = directory / (alert_id+".jpg")
+            if cv2.imwrite(str(snapshot),frame):
+                payload["snapshot_path"] = str(snapshot)
+        except Exception:
+            logger.exception("Snapshot storage unavailable; local alarm remains latched")
+        try:
+            self.outbox.enqueue_alert(payload)
+        except Exception:
+            self._pending_memory[alert_id] = payload
+            logger.exception("Outbox storage unavailable; retaining incident in memory")
         return alert_id
 
-    def _annotate_frame(self, frame: np.ndarray, detections: List[Detection], zones: list) -> np.ndarray:
-        """Draws zone boundaries, detection bboxes, labels, and telemetry."""
-        img = frame.copy()
-        h, w = img.shape[:2]
-
-        # Draw zones
-        for z in zones:
-            if len(z.polygon) >= 3:
-                pts = np.array([[int(p[0] * w), int(p[1] * h)] for p in z.polygon], np.int32)
-                pts = pts.reshape((-1, 1, 2))
-                zone_color = (0, 0, 220) if z.type == "smoking_restricted" else (0, 200, 255)
-                cv2.polylines(img, [pts], isClosed=True, color=zone_color, thickness=2)
-                cv2.putText(img, f"ZONE: {z.name}", (pts[0][0][0], max(20, pts[0][0][1] - 8)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, zone_color, 1)
-
-        # Draw detections
-        for d in detections:
-            x1, y1 = int(d.bbox[0] * w), int(d.bbox[1] * h)
-            x2, y2 = int(d.bbox[2] * w), int(d.bbox[3] * h)
-            color = COLORS.get(d.class_name, (200, 200, 200))
-
-            cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-            lbl = f"{d.class_name} {d.confidence:.2f}"
-            cv2.rectangle(img, (x1, max(0, y1 - 18)), (x1 + len(lbl) * 8, y1), color, -1)
-            cv2.putText(img, lbl, (x1 + 2, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
-
-        return img
-
-
 def main():
-    parser = argparse.ArgumentParser(description="Factory Safety AI - Edge Daemon")
-    parser.add_argument("--config", default="edge_config.json", help="Path to config JSON")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="edge_config.json")
     args = parser.parse_args()
-
-    cfg = load_config(args.config)
-    worker = EdgeWorker(cfg)
-
-    def _sig_handler(sig, frame):
-        print("\n[*] Interrupted by user. Terminating edge worker...")
+    worker = EdgeWorker(load_config(args.config))
+    def stop(*_):
         worker.stop()
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, _sig_handler)
-    signal.signal(signal.SIGTERM, _sig_handler)
-
+        raise SystemExit(0)
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGTERM, stop)
     worker.start()
 
 if __name__ == "__main__":

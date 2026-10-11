@@ -4,6 +4,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output = "../generated/client"
 }
 
 datasource db {
@@ -37,6 +38,10 @@ model EdgeNode {
   lastSeenAt DateTime?
   fps        Float?
   latencyMs  Float?
+  appliedConfigVersion Int @default(0)
+  detectorMode String @default("unknown")
+  alarmAdapter String @default("unconfigured")
+  activeAlarmCount Int @default(0)
   status     String    @default("unknown") // "online" | "offline" | "degraded" | "unknown"
   cameras    Camera[]
   createdAt  DateTime  @default(now())
@@ -53,6 +58,8 @@ model Camera {
   enabled      Boolean   @default(true)
   status       String    @default("unknown") // "online" | "offline" | "stalled" | "unknown"
   lastFrameAt  DateTime?
+  fps          Float?
+  latencyMs    Float?
   zones        Zone[]
   alerts       Alert[]
   createdAt    DateTime  @default(now())
@@ -64,6 +71,8 @@ model Zone {
   camera    Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
   kind      String   // "SMOKING_RESTRICTED" | "PPE_REQUIRED" | "IGNORE"
   polygon   String   // JSON string: [[x, y], ...] normalized 0.0 - 1.0
+  name      String   @default("Detection zone")
+  requiredPpe String @default("[\"helmet\",\"vest\"]")
   createdAt DateTime @default(now())
 }
 
@@ -103,9 +112,22 @@ model Alert {
   ackById      String?
   ackAt        DateTime?
   note         String?
+  zoneId       String?
+  bbox         String?
+  resolvedAt   DateTime?
+  resolvedById String?
+  receipts     AlertReceipt[]
 
   @@index([status, severity, firstSeenAt])
   @@index([cameraId, dedupKey, lastSeenAt])
+}
+
+model AlertReceipt {
+  id        String @id
+  alertId   String
+  alert     Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@index([alertId])
 }
 
 model AlertEvent {

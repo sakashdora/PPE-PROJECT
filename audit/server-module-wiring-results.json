@@ -1,0 +1,10 @@
+{
+  "distinctEventBusInstances": 4,
+  "modules": [
+    "edge/edge.module.ts",
+    "alerts/alerts.module.ts",
+    "health/health.module.ts",
+    "realtime/realtime.module.ts"
+  ],
+  "realtimeReceivedFromEdge": 0
+}

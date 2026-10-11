@@ -1,37 +1,15 @@
-// Prisma schema for Factory Safety AI On-Prem Server (PostgreSQL Production)
+// Prisma schema for Factory Safety AI On-Prem Server
+// Local Development: SQLite (file:./dev.db)
+// Production Docker: PostgreSQL (see schema.postgresql.prisma)
 
 generator client {
   provider = "prisma-client-js"
+  output = "../generated/client"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-enum Role {
-  VIEWER
-  SUPERVISOR
-  ADMIN
-}
-
-enum Severity {
-  CRITICAL
-  WARNING
-  COMPLIANCE
-}
-
-enum AlertStatus {
-  OPEN
-  ACKNOWLEDGED
-  RESOLVED
-  FALSE_ALARM
-}
-
-enum ZoneKind {
-  SMOKING_RESTRICTED
-  PPE_REQUIRED
-  IGNORE
 }
 
 model Site {
@@ -60,7 +38,11 @@ model EdgeNode {
   lastSeenAt DateTime?
   fps        Float?
   latencyMs  Float?
-  status     String    @default("unknown")
+  appliedConfigVersion Int @default(0)
+  detectorMode String @default("unknown")
+  alarmAdapter String @default("unconfigured")
+  activeAlarmCount Int @default(0)
+  status     String    @default("unknown") // "online" | "offline" | "degraded" | "unknown"
   cameras    Camera[]
   createdAt  DateTime  @default(now())
 }
@@ -72,10 +54,12 @@ model Camera {
   edgeNodeId   String
   edgeNode     EdgeNode  @relation(fields: [edgeNodeId], references: [id], onDelete: Cascade)
   name         String
-  streamUrlEnc String
+  streamUrlEnc String    // AES-GCM encrypted, never sent to browser
   enabled      Boolean   @default(true)
-  status       String    @default("unknown")
+  status       String    @default("unknown") // "online" | "offline" | "stalled" | "unknown"
   lastFrameAt  DateTime?
+  fps          Float?
+  latencyMs    Float?
   zones        Zone[]
   alerts       Alert[]
   createdAt    DateTime  @default(now())
@@ -85,60 +69,76 @@ model Zone {
   id        String   @id @default(uuid())
   cameraId  String
   camera    Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
-  kind      ZoneKind
-  polygon   Json
+  kind      String   // "SMOKING_RESTRICTED" | "PPE_REQUIRED" | "IGNORE"
+  polygon   String   // JSON string: [[x, y], ...] normalized 0.0 - 1.0
+  name      String   @default("Detection zone")
+  requiredPpe String @default("[\"helmet\",\"vest\"]")
   createdAt DateTime @default(now())
 }
 
 model ModelVersion {
   id         String   @id @default(uuid())
   name       String   @unique
-  metrics    Json
-  thresholds Json
+  metrics    String   // JSON string of evaluation report metrics
+  thresholds String   // JSON string of calibrated decision thresholds
   active     Boolean  @default(false)
   createdAt  DateTime @default(now())
 }
 
 model ConfigState {
   id        Int      @id @default(1)
-  version   Int      @default(1)
-  params    Json
+  version   Int      @default(1) // incremented on any configuration change
+  params    String   // JSON string: voter params, cooldowns, shifts
   updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Alert {
-  id           String      @id
+  id           String    @id // UUID generated on edge = idempotency key
   cameraId     String
-  camera       Camera      @relation(fields: [cameraId], references: [id], onDelete: Cascade)
-  dedupKey     String
-  severity     Severity
-  type         String
-  items        String[]
+  camera       Camera    @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  dedupKey     String    // e.g. "helmet" | "fire" | "smoke"
+  severity     String    // "CRITICAL" | "WARNING" | "COMPLIANCE"
+  type         String    // "fire" | "smoke" | "smoking" | "ppe_missing"
+  items        String    // JSON string array e.g. '["helmet", "vest"]'
   confidence   Float
-  votes        String?
-  hitCount     Int         @default(1)
+  votes        String?   // e.g. "2/5"
+  hitCount     Int       @default(1)
   firstSeenAt  DateTime
   lastSeenAt   DateTime
-  status       AlertStatus @default(OPEN)
-  version      Int         @default(1)
+  status       String    @default("OPEN") // "OPEN" | "ACKNOWLEDGED" | "RESOLVED" | "FALSE_ALARM"
+  version      Int       @default(1)      // Compare-and-Swap version counter
   snapshotPath String?
   modelVersion String?
   ackById      String?
   ackAt        DateTime?
   note         String?
+  zoneId       String?
+  bbox         String?
+  resolvedAt   DateTime?
+  resolvedById String?
+  receipts     AlertReceipt[]
 
   @@index([status, severity, firstSeenAt])
   @@index([cameraId, dedupKey, lastSeenAt])
 }
 
-model AlertEvent {
-  seq       BigInt   @id @default(autoincrement())
+model AlertReceipt {
+  id        String @id
   alertId   String
-  kind      String
-  payload   Json
+  alert     Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@index([alertId])
+}
+
+model AlertEvent {
+  seq       Int      @id @default(autoincrement()) // sequential monotonic ID for WS gapless replay
+  alertId   String
+  kind      String   // "created" | "updated" | "transition"
+  payload   String   // JSON string representation of Alert row
   createdAt DateTime @default(now())
 
   @@index([alertId])
+  @@index([seq])
 }
 
 model User {
@@ -146,17 +146,17 @@ model User {
   email        String   @unique
   name         String
   passwordHash String
-  role         Role
+  role         String   @default("VIEWER") // "VIEWER" | "SUPERVISOR" | "ADMIN"
   createdAt    DateTime @default(now())
 }
 
 model AuditLog {
   id       String   @id @default(uuid())
   userId   String?
-  action   String
-  entity   String
+  action   String   // "login" | "ack" | "resolve" | "false_alarm" | "config_change"
+  entity   String   // "alert" | "camera" | "config" | "user"
   entityId String?
-  meta     Json
+  meta     String   // JSON string metadata
   at       DateTime @default(now())
 
   @@index([entity, entityId])

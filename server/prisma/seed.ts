@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/client';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
@@ -15,7 +15,7 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@factory.ai' },
-    update: { passwordHash: adminPasswordHash, role: 'ADMIN' },
+    update: {},
     create: {
       email: 'admin@factory.ai',
       name: 'System Admin',
@@ -26,7 +26,7 @@ async function main() {
 
   const supervisor = await prisma.user.upsert({
     where: { email: 'supervisor@factory.ai' },
-    update: { passwordHash: supervisorPasswordHash, role: 'SUPERVISOR' },
+    update: {},
     create: {
       email: 'supervisor@factory.ai',
       name: 'Shift Supervisor',
@@ -37,7 +37,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: 'operator@factory.ai' },
-    update: { passwordHash: viewerPasswordHash, role: 'VIEWER' },
+    update: {},
     create: {
       email: 'operator@factory.ai',
       name: 'Safety Operator',
@@ -79,31 +79,34 @@ async function main() {
         siteId: site.id,
         name: 'Factory Edge NUC-01',
         apiKeyHash,
-        status: 'online',
+        status: 'unknown',
         fps: 28.5,
         latencyMs: 14.2,
-        lastSeenAt: new Date(),
+        lastSeenAt: null,
       },
     });
   }
 
   // 5. Cameras
   const defaultCameras = [
-    { id: 'cam-01', name: 'Assembly Line A', streamUrl: 'rtsp://mock/cam-01' },
-    { id: 'cam-02', name: 'Boiler & Steam Room', streamUrl: 'rtsp://mock/cam-02' },
-    { id: 'cam-03', name: 'Chemical Storage', streamUrl: 'rtsp://mock/cam-03' },
-    { id: 'cam-04', name: 'Welding & Fabrication', streamUrl: 'rtsp://mock/cam-04' },
+    { id: 'cam-01', name: 'Assembly Line A', streamUrl: 'synthetic' },
+    { id: 'cam-02', name: 'Boiler & Steam Room', streamUrl: 'synthetic' },
+    { id: 'cam-03', name: 'Chemical Storage', streamUrl: 'synthetic' },
+    { id: 'cam-04', name: 'Welding & Fabrication', streamUrl: 'synthetic' },
   ];
 
   for (const c of defaultCameras) {
+    const current = await prisma.camera.findUnique({ where: { id: c.id } });
+    if (current?.streamUrlEnc === `rtsp://mock/${c.id}`) {
+      await prisma.$transaction(async tx => {
+        await tx.camera.update({ where: { id: c.id }, data: { streamUrlEnc: 'synthetic', status: 'unknown', lastFrameAt: null } });
+        await tx.configState.upsert({ where: { id: 1 }, update: { version: { increment: 1 } }, create: { id: 1, version: 1, params: '{}' } });
+        await tx.auditLog.create({ data: { action: 'normalize_demo_source', entity: 'camera', entityId: c.id, meta: JSON.stringify({ from: current.streamUrlEnc, to: 'synthetic', reason: 'Replace the nonfunctional seeded placeholder with an explicitly labeled demonstration source' }) } });
+      });
+    }
     await prisma.camera.upsert({
       where: { id: c.id },
-      update: {
-        name: c.name,
-        streamUrlEnc: c.streamUrl,
-        status: 'online',
-        lastFrameAt: new Date(),
-      },
+      update: {},
       create: {
         id: c.id,
         name: c.name,
@@ -111,8 +114,8 @@ async function main() {
         edgeNodeId: edgeNode.id,
         streamUrlEnc: c.streamUrl,
         enabled: true,
-        status: 'online',
-        lastFrameAt: new Date(),
+        status: 'unknown',
+        lastFrameAt: null,
       },
     });
   }
@@ -144,34 +147,15 @@ async function main() {
     });
   }
 
-  // 7. Active Model Version
-  await prisma.modelVersion.upsert({
-    where: { name: 'ppe_v1_s2_yolo11s' },
-    update: { active: true },
-    create: {
-      name: 'ppe_v1_s2_yolo11s',
-      active: true,
-      metrics: JSON.stringify({
-        precision: 0.843,
-        recall: 0.721,
-        mAP50: 0.771,
-        mAP50_95: 0.520,
-      }),
-      thresholds: JSON.stringify({
-        person: 0.50,
-        helmet: 0.70,
-        head: 0.65,
-        vest: 0.65,
-        gloves: 0.60,
-        boots: 0.60,
-        no_gloves: 0.60,
-        no_boots: 0.60,
-        fire: 0.35,
-        smoke: 0.30,
-        cigarette: 0.50,
-      }),
-    },
-  });
+  // Register supported model files without changing an existing selection.
+  const activeModel = await prisma.modelVersion.findFirst({ where: { active: true } });
+  for (const name of ['best_s5', 'best_s4']) {
+    await prisma.modelVersion.upsert({
+      where: { name }, update: {},
+      create: { name, active: !activeModel && name === 'best_s5', metrics: '{}',
+        thresholds: JSON.stringify({ person: .5, helmet: .65, head: .3, vest: .65, gloves: .3, boots: .3, no_gloves: .35, no_boots: .35, fire: .3, smoke: .25, cigarette: .3 }) },
+    });
+  }
 
   // 8. Config State
   await prisma.configState.upsert({

@@ -267,10 +267,10 @@ export const VideoUploadDetection: React.FC = () => {
 
         // Label banner
         ctx.fillStyle = det.color;
-        ctx.fillRect(x, y - 16, Math.max(w, 80), 16);
+        ctx.fillRect(x, y - 20, Math.max(w, 110), 20);
         ctx.fillStyle = "#F3EFE6";
-        ctx.font = "bold 9px 'JetBrains Mono', monospace";
-        ctx.fillText(det.label, x + 4, y - 4);
+        ctx.font = "bold 12px 'JetBrains Mono', monospace";
+        ctx.fillText(det.label, x + 6, y - 5);
       });
     }
 

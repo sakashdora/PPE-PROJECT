@@ -119,7 +119,7 @@ cd PPE-PROJECT
 
 ---
 
-### Step 2: Start the Backend Server (`server/`)
+### Step 2: Initialize Database
 ```bash
 cd server
 npm install
@@ -129,13 +129,22 @@ npx prisma generate
 npx prisma db push
 npm run prisma:seed
 
-# Start backend engine on port 4000
-npm run start
+# Optional: Clean DB with realistic demo incidents
+node clean-demo-db.js
 ```
-> *Backend services will be live:*
-> - **REST API:** `http://localhost:4000`
-> - **Native WebSocket:** `ws://localhost:4000/ws`
-> - **Health Probe:** `http://localhost:4000/health/live`
+
+---
+
+### Step 3: Start All Services (Windows)
+```bash
+# Run the included PowerShell script from the project root
+.\start-demo.ps1
+```
+> *This will automatically launch:*
+> - **Backend API:** `http://localhost:4000`
+> - **Supervisor Dashboard:** `http://localhost:3000`
+> - **Edge Stream:** `http://localhost:8080`
+> - **Forensics Server:** `http://localhost:8090`
 
 ---
 
@@ -170,44 +179,39 @@ docker-compose -f infra/docker-compose.yml up --build -d
 
 ---
 
-## 🎭 Live Hackathon Presentation Script (3-Minute Demo Guide)
+## 🎭 Live Hackathon Presentation Script (5-Minute Judge Walkthrough)
 
-The web dashboard comes with an integrated **Jury Presentation Controller** in the top navigation bar to showcase end-to-end capabilities seamlessly:
+To ensure a smooth demonstration for the judges, we have pre-configured a realistic demo state.
 
-```
-[ Top Nav ] -> Click [ 🎬 Demo Scenarios ]
-```
+### 1. 🧹 Preparation
+Run `node server/clean-demo-db.js` before the pitch. This wipes thousands of development test alerts and inserts exactly **4 open demo incidents** (Fire, Smoke, PPE Violations) across different cameras. Run `.\start-demo.ps1` to start the system.
 
-### 1. 🎛️ Stage 1: The Live 4-Stream CCTV Wall (`/wall`)
-- Navigate to `/wall`.
-- Showcase 4 live simulated CCTV streams across factory sectors:
-  - **CAM-01:** Loading Bay (Sector 1)
-  - **CAM-02:** Boiler Room (Sector 2)
-  - **CAM-03:** Chemical Storage (Sector 3)
-  - **CAM-04:** Furnace & Assembly (Sector 4)
-- Demonstrate layout switching ($2\times2$, $3\times3$, $4\times4$) and sector filtering.
+### 2. 🎛️ Stage 1: Login & The Live 4-Stream CCTV Wall (`/wall`)
+- **Action**: Navigate to `http://localhost:3000` and login as `supervisor@factory.ai` (pass: `supervisor123`).
+- **Show**: The live dashboard and navigate to the **Camera Wall**.
+- **Talking Point**: We are processing 4 simultaneous streams entirely at the edge without cloud GPU costs.
 
-### 2. 🦺 Stage 2: Missing Helmet Violation (Sector 4)
-- Click **Scenario 1: Missing Helmet in Sector 4**.
-- Observe worker entering Furnace Hall without hard hat.
-- Bare head detected inside person bounding box with **$8/10$ temporal votes**.
-- Triage card appears in the sidebar under `COMPLIANCE`.
+### 3. 🔥 Stage 2: CRITICAL Fire & Smoke Triage (`/alerts`)
+- **Action**: Navigate to the **Alerts** tab.
+- **Show**: The prioritized triage queue. Select the **CRITICAL Fire** incident.
+- **Talking Point**: The edge worker detected a fire, firing a physical GPIO siren in the factory within 10ms. The supervisor sees it prioritized here with high-confidence bounding box evidence.
+- **Action**: Click **Acknowledge**, type a note (e.g., "Dispatching team"), and submit.
+- **Talking Point**: Notice how the CAS state machine atomically updates the status, which subsequently sends a signal back to the edge to unlatch the physical siren.
 
-### 3. 🧪 Stage 3: Corner-Case Negative Discrimination Test
-- Click **Scenario 2: Corner Case Test (Yellow Shirt & Cap)**.
-- Worker wearing a yellow shirt and cap enters the camera frame.
-- Point out **`PASSED_SILENT`**: The system discriminates yellow clothing from fire, and caps from safety helmets. **Zero false alarms triggered.**
+### 4. 🦺 Stage 3: Missing PPE (Compliance Validation)
+- **Action**: In the Alerts tab, select a **WARNING Missing Helmet** incident.
+- **Show**: The person crop showing the missing hard hat.
+- **Talking Point**: Unlike generic models, we use a dual-rate temporal voter ($8/10$ frames) and anatomical bounding boxes. If a worker is just adjusting their helmet, we don't spam the system. It only fires on sustained violations.
 
-### 4. 🔥 Stage 4: CRITICAL Fire Breakout & Emergency Siren
-- Click **Scenario 3: Fire Hazard Breakout (CRITICAL)**.
-- Arc flash ignition occurs in Sector 2 (Chemical Storage).
-- Priority immediately preempts the top of the queue with red pulsating borders.
-- Web Audio API synthesizes a **dual-tone industrial evacuation alarm**.
-- Supervisor clicks **Acknowledge** with note $\to$ State machine atomically commits transition $\to$ Alarm unlatches.
+### 5. 🔍 Stage 4: Video Forensics (`/forensics`)
+- **Action**: Navigate to the **Forensics** tab. Upload a short safety test video.
+- **Show**: The live Server-Sent Events (SSE) streaming analysis.
+- **Talking Point**: Post-incident investigations can be done securely on-prem. The SSE streams analysis frames back to the UI in real-time, automatically generating a compliance PDF/JSON report for auditors.
 
-### 5. 🌐 Stage 5: Network Drop & Reconnect Catch-Up
-- Click **Scenario 5: Disconnect & Reconnect**.
-- System demonstrates offline SQLite queue buffering during WAN drops, followed by gapless sequence replay (`?since=<seq>`) upon reconnection.
+### 6. 📈 Stage 5: Analytics & Safety Reports (`/reports`)
+- **Action**: Navigate to the **Reports** tab.
+- **Show**: The Incident Volume charts and Severity breakdown.
+- **Talking Point**: All this data is aggregated securely on-site, allowing management to see which sectors have the most compliance failures (e.g., Boiler Room) and track resolution times.
 
 ---
 

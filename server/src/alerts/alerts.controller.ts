@@ -28,13 +28,15 @@ export class AlertsController {
     @Query('cameraId') cameraId?: string,
     @Query('limit') limit?: string,
     @Query('cursor') cursor?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
   ) {
     return this.alertsService.listAlerts({
       status,
       severity,
       cameraId,
       limit: limit ? parseInt(limit, 10) : undefined,
-      cursor: cursor ? parseInt(cursor, 10) : undefined,
+      cursor, from, to,
     });
   }
 

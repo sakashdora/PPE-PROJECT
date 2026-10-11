@@ -10,9 +10,11 @@ import { ConfigModule } from './config/config.module';
 import { ReportsModule } from './reports/reports.module';
 import { HealthModule } from './health/health.module';
 import { RetentionModule } from './retention/retention.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
+    CommonModule,
     ScheduleModule.forRoot(),
     PrismaModule,
     AuditModule,

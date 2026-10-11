@@ -24,7 +24,7 @@ export class EdgeController {
 
   @Post('alerts')
   @HttpCode(200)
-  @UseInterceptors(FileInterceptor('snapshot'))
+  @UseInterceptors(FileInterceptor('snapshot', { limits: { fileSize: 8 * 1024 * 1024 } }))
   async ingestAlert(
     @Req() req: any,
     @Body() body: any,

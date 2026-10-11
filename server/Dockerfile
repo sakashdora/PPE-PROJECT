@@ -1,36 +1,20 @@
-# Multi-stage Dockerfile for NestJS Server
 FROM node:22-alpine AS builder
-
 WORKDIR /app
-
 COPY package*.json ./
-COPY tsconfig*.json ./
-COPY nest-cli.json ./
-COPY prisma ./prisma/
-
 RUN npm ci
-
-COPY src ./src/
-
-RUN npx prisma generate --schema=prisma/schema.postgresql.prisma
+COPY tsconfig*.json nest-cli.json ./
+COPY prisma ./prisma
+COPY src ./src
+RUN node node_modules/prisma/build/index.js generate --schema prisma/schema.postgresql.prisma
 RUN npm run build
-
-# Production Runner
-FROM node:22-alpine AS runner
-
+FROM node:22-alpine
 WORKDIR /app
-
-ENV NODE_ENV=production
-ENV PORT=4000
-
-COPY package*.json ./
-COPY prisma ./prisma/
-
-RUN npm ci --only=production
+ENV NODE_ENV=production PORT=4000
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/generated ./generated
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/tsconfig.json ./
 EXPOSE 4000
-
-CMD ["node", "dist/src/main.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js db push --schema prisma/schema.postgresql.prisma --skip-generate && node node_modules/ts-node/dist/bin.js prisma/seed.ts && node dist/main.js"]

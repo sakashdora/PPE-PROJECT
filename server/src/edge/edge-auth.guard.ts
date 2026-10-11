@@ -21,11 +21,11 @@ export class EdgeAuthGuard implements CanActivate {
       where: { apiKeyHash: keyHash },
     });
 
-    if (!edgeNode && rawKey !== (process.env.EDGE_API_KEY || 'edge-api-key-factory-plant-01')) {
+    if (!edgeNode) {
       throw new UnauthorizedException({ code: 'INVALID_EDGE_KEY', message: 'Unauthorized edge key' });
     }
 
-    req.edgeNode = edgeNode || { id: 'edge-node-01', name: 'Factory Edge NUC-01' };
+    req.edgeNode = edgeNode;
     return true;
   }
 }

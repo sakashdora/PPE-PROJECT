@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
  * If NestJS is unreachable, we return a safe default so the edge does NOT unlatch
  * alarms (fail-closed for safety).
  */
-const NESTJS_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const NESTJS_URL = process.env.INTERNAL_API_URL || "http://localhost:4000";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,10 +35,10 @@ export async function POST(req: NextRequest) {
     // when the server is down (safety-critical default).
     return NextResponse.json({
       ok: false,
-      configVersion: 1,
+
       clearAlarms: [],
       error: "on-prem-server-unreachable",
-    });
+    }, { status: 503 });
   }
 }
 

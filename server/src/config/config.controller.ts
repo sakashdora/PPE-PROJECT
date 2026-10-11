@@ -20,9 +20,24 @@ export class ConfigController {
   constructor(private configService: ConfigService) {}
 
   @Get('cameras')
-  async listCameras() {
-    return this.configService.listCameras();
+  async listCameras(@Req() req: any) {
+    return this.configService.listCameras(req.user.role === 'ADMIN');
   }
+
+  @Get('state')
+  async state() { return this.configService.state(); }
+
+  @Put('detection')
+  @Roles('ADMIN')
+  async detection(@Req() req: any, @Body() body: any) { return this.configService.saveDetection(req.user, body); }
+
+  @Post('cameras')
+  @Roles('ADMIN')
+  async createCamera(@Req() req: any, @Body() body: any) { return this.configService.createCamera(req.user, body); }
+
+  @Put('zones/:id')
+  @Roles('ADMIN')
+  async updateZone(@Param('id') id: string, @Req() req: any, @Body() body: any) { return this.configService.updateZone(id, req.user, body); }
 
   @Patch('cameras/:id')
   @Roles('ADMIN')

@@ -7,7 +7,7 @@ import { EventBusService } from '../common/event-bus.service';
 @Module({
   imports: [AuthModule],
   controllers: [AlertsController],
-  providers: [AlertsService, EventBusService],
+  providers: [AlertsService],
   exports: [AlertsService],
 })
 export class AlertsModule {}

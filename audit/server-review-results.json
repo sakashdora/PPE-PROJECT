@@ -1,0 +1,109 @@
+{
+  "scope": "Fresh isolated SQLite database; direct source service/controller calls, not live HTTP or application data.",
+  "results": [
+    {
+      "name": "Emitted alert shape is raw Prisma row",
+      "evidence": {
+        "status": "OPEN",
+        "itemsType": "string",
+        "items": "[\"fire\"]",
+        "hasTs": false,
+        "hasSector": false,
+        "firstSeenAtType": "object"
+      }
+    },
+    {
+      "name": "CAS accepts missing expectedVersion",
+      "evidence": {
+        "status": "ACKNOWLEDGED",
+        "version": 2
+      }
+    },
+    {
+      "name": "OPEN can resolve without ACKNOWLEDGED",
+      "evidence": {
+        "status": "RESOLVED",
+        "version": 2
+      }
+    },
+    {
+      "name": "Dedup UUID is not persisted or cleared and retry double-counts",
+      "evidence": {
+        "returnedCanonicalId": "dedup-a",
+        "rowsForB": 0,
+        "hitsAfterBResent": 3,
+        "clearsA": true,
+        "clearsB": false
+      }
+    },
+    {
+      "name": "Edge camera ownership unchecked",
+      "evidence": {
+        "foreignCameraStatus": "online",
+        "foreignCameraAlertAccepted": true
+      }
+    },
+    {
+      "name": "Camera read response exposes streamUrlEnc",
+      "evidence": {
+        "includesStreamUrlEnc": true
+      }
+    },
+    {
+      "name": "Snapshot path allows traversal outside configured storage",
+      "evidence": {
+        "escapedStorageRoot": true,
+        "writtenPathRelativeToScratch": "review-outside-storage.jpg",
+        "acceptedNonJpeg": true
+      }
+    },
+    {
+      "name": "Invalid model activation removes current active model",
+      "evidence": {
+        "error": "P2025",
+        "activeCount": 0
+      }
+    },
+    {
+      "name": "Controller cursor parse repeats first page",
+      "evidence": {
+        "firstIds": [
+          "foreign-alert",
+          "dedup-a"
+        ],
+        "nextIds": [
+          "foreign-alert",
+          "dedup-a"
+        ]
+      }
+    },
+    {
+      "name": "UUID cursor becomes numeric",
+      "evidence": {
+        "limit": 2,
+        "cursor": 550
+      }
+    },
+    {
+      "name": "Event failure permanently loses replay after alert commit",
+      "evidence": {
+        "retryStatus": "already_exists",
+        "alertExists": true,
+        "eventCount": 0
+      }
+    },
+    {
+      "name": "Unauthenticated WS receives live event before older replay",
+      "evidence": {
+        "sequenceOrder": [
+          2,
+          1
+        ],
+        "versionOrder": [
+          2,
+          1
+        ]
+      }
+    }
+  ]
+}

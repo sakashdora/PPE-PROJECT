@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
  * In production, the edge worker always targets NestJS directly. This is only
  * a development convenience fallback.
  */
-const NESTJS_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const NESTJS_URL = process.env.INTERNAL_API_URL || "http://localhost:4000";
 
 export async function POST(req: NextRequest) {
   try {

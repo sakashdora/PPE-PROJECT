@@ -1,0 +1,15 @@
+const fs=require('fs'),path=require('path'),{spawnSync}=require('child_process');
+const root=path.resolve(__dirname,'../..'),server=path.join(root,'server'),work=path.join(root,'.runtime/postgres-check');
+fs.mkdirSync(work,{recursive:true});
+const schema=fs.readFileSync(path.join(server,'prisma/schema.postgresql.prisma'),'utf8').replace('provider = "prisma-client-js"','provider = "node '+path.join(server,'node_modules/@prisma/client/generator-build/index.js').replace(/\\/g,'/')+'"').replace('output = "../generated/client"','output = "./client"');
+fs.writeFileSync(path.join(work,'schema.prisma'),schema);
+const generated=spawnSync(process.execPath,[path.join(server,'node_modules/prisma/build/index.js'),'generate','--schema',path.join(work,'schema.prisma')],{cwd:server,encoding:'utf8',env:{...process.env,PRISMA_GENERATE_SKIP_AUTOINSTALL:'1',DATABASE_URL:'postgresql://test:test@127.0.0.1:65534/test'}});
+if(generated.status!==0)throw Error(generated.stdout+generated.stderr);
+fs.cpSync(path.join(server,'src'),path.join(work,'src'),{recursive:true});
+const service=path.join(work,'src/prisma/prisma.service.ts');fs.writeFileSync(service,fs.readFileSync(service,'utf8').replace("'../../generated/client'","'"+path.join(work,'client').replace(/\\/g,'/')+"'"));
+const config={extends:path.join(server,'tsconfig.json'),compilerOptions:{rootDir:path.join(work,'src'),incremental:false,noEmit:true,paths:{"*":[path.join(server,'node_modules/*').replace(/\\/g,'/')]},typeRoots:[path.join(server,'node_modules/@types')]},include:[path.join(work,'src/**/*.ts')],exclude:[]};
+fs.writeFileSync(path.join(work,'tsconfig.json'),JSON.stringify(config,null,2));
+const result=spawnSync(process.execPath,[path.join(server,'node_modules/typescript/bin/tsc'),'-p',path.join(work,'tsconfig.json')],{cwd:server,encoding:'utf8'});
+const report={generatorExit:generated.status,typeCheckExit:result.status,output:result.stdout+result.stderr,databaseConnectionAttempted:false};
+fs.mkdirSync(path.join(root,'.runtime/verification'),{recursive:true});fs.writeFileSync(path.join(root,'.runtime/verification/postgres-types.json'),JSON.stringify(report,null,2));
+console.log(result.stdout+result.stderr);console.log('PostgreSQL client generation: '+generated.status+'; type check: '+result.status);process.exitCode=result.status||0;

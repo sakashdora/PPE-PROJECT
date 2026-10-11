@@ -1,0 +1,2 @@
+event_id,track_id,event_type,severity,start_time_sec,end_time_sec,duration_sec,start_frame,end_frame,description,confidence,status
+evt-43a3b2b0,2,NO_VEST,WARNING,3.04,3.2,0.16,76,80,Worker #002 missing hi-vis safety vest,0.85,RESOLVED

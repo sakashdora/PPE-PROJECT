@@ -1,0 +1,31 @@
+Isolated PostgreSQL generated-client TypeScript check
+Generator exit: 0
+TypeScript exit: 2
+No database connection attempted. The original server client was unchanged.
+
+src/alerts/alerts.service.ts(71,25): error TS2345: Argument of type 'string[] | "[]"' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+src/alerts/alerts.service.ts(87,25): error TS2345: Argument of type 'string[] | "[]"' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+src/alerts/alerts.service.ts(142,11): error TS2322: Type 'string' is not assignable to type 'AlertStatus | EnumAlertStatusFieldUpdateOperationsInput'.
+src/alerts/alerts.service.ts(184,7): error TS2322: Type 'bigint' is not assignable to type 'number'.
+src/alerts/alerts.service.ts(191,25): error TS2345: Argument of type 'string[] | "[]"' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+src/config/config.service.ts(55,9): error TS2322: Type 'string' is not assignable to type 'ZoneKind'.
+src/config/config.service.ts(109,38): error TS2345: Argument of type 'JsonValue' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+src/edge/edge.service.ts(115,11): error TS2322: Type 'string' is not assignable to type 'string[] | AlertCreateitemsInput'.
+src/edge/edge.service.ts(142,7): error TS2322: Type 'bigint' is not assignable to type 'number'.
+src/edge/edge.service.ts(208,45): error TS2345: Argument of type 'JsonValue' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+src/edge/edge.service.ts(209,49): error TS2345: Argument of type 'JsonValue' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+src/edge/edge.service.ts(233,31): error TS2345: Argument of type 'JsonValue' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+src/health/offline-detector.service.ts(59,15): error TS2322: Type 'string' is not assignable to type 'string[] | AlertCreateitemsInput'.
+src/health/offline-detector.service.ts(79,13): error TS2322: Type 'bigint' is not assignable to type 'number'.
+src/realtime/realtime.gateway.ts(77,36): error TS2345: Argument of type 'JsonValue' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.
+src/realtime/realtime.gateway.ts(80,15): error TS2322: Type 'bigint' is not assignable to type 'number'.
+src/reports/reports.service.ts(47,32): error TS2345: Argument of type 'string[] | "[]"' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.

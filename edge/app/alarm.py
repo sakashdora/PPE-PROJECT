@@ -1,104 +1,112 @@
-"""
-Factory Safety AI - Local Edge Alarm Controller
-Zero-cloud-dependency emergency alarm adapter.
-Directly triggers factory buzzers, relays, and sirens with <100ms response time.
-"""
-
-import time
+"""Local, network-independent alarm state and optional GPIO adapter."""
+import json
 import logging
+import os
+import threading
+from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger("edge.alarm")
 
 class LocalAlarmController:
-    """
-    Direct hardware / local network alarm activator.
-    Guarantees the critical alarm pathway works even if the factory LAN or cloud drops.
-    """
-    def __init__(self, relay_pin: Optional[int] = None, enable_sound: bool = True):
+    def __init__(self, relay_pin: Optional[int] = None, enable_sound: bool = True, state_path: Optional[str] = None):
         self.relay_pin = relay_pin
         self.enable_sound = enable_sound
         self.active_critical = False
         self.active_warning = False
         self.active_alert_ids = set()
-        self._last_trigger_time = 0.0
-
-        # Attempt to import RPi.GPIO or mock hardware relay if available on physical edge box
+        self.critical_alert_ids = set()
+        self.cleared_alert_ids = set()
         self.gpio_available = False
+        self._lock = threading.RLock()
+        self.state_path = Path(state_path) if state_path else None
         if relay_pin is not None:
             try:
-                import RPi.GPIO as GPIO # type: ignore
+                import RPi.GPIO as GPIO
                 GPIO.setmode(GPIO.BCM)
                 GPIO.setup(relay_pin, GPIO.OUT)
                 self.gpio_available = True
-                logger.info(f"[*] Hardware GPIO Relay initialized on Pin {relay_pin}")
             except Exception:
-                logger.info("[*] Physical GPIO not detected; operating in simulated hardware mode.")
-
-    def trigger_critical(self, camera_id: str, hazard_type: str, details: str = "", alert_id: Optional[str] = None) -> None:
-        """
-        Immediately fires hardware siren/relay on CRITICAL hazards (Fire / Smoke).
-        Must execute synchronously in under 10ms.
-        """
-        self.active_critical = True
-        self._last_trigger_time = time.time()
-        if alert_id:
-            self.active_alert_ids.add(alert_id)
-
-        print(f"\n" + "!" * 65)
-        print(f" [LOCAL SIREN TRIGGERED] CRITICAL HAZARD: {hazard_type.upper()}")
-        print(f" Camera: {camera_id} | Time: {time.strftime('%Y-%m-%d %H:%M:%S')} | {details}")
-        if alert_id:
-            print(f" Alert ID: {alert_id}")
-        print("!" * 65 + "\n")
-
-        if self.gpio_available and self.relay_pin is not None:
+                logger.error("GPIO adapter unavailable; no physical output is configured.")
+        if self.state_path and self.state_path.exists():
             try:
-                import RPi.GPIO as GPIO # type: ignore
-                GPIO.output(self.relay_pin, GPIO.HIGH)
-            except Exception as e:
-                logger.error(f"[!] GPIO relay write failed: {e}")
+                saved = json.loads(self.state_path.read_text())
+                self.active_alert_ids = set(saved.get("active", []))
+                self.critical_alert_ids = set(saved.get("critical", saved.get("active", [])))
+                self.cleared_alert_ids = set(saved.get("cleared", []))
+                self.active_critical = bool(self.critical_alert_ids)
+                self.active_warning = bool(self.active_alert_ids - self.critical_alert_ids)
+                self._output(self.active_critical)
+            except Exception:
+                logger.error("Could not recover alarm state. Operator inspection required.")
 
-    def trigger_warning(self, camera_id: str, hazard_type: str, details: str = "", alert_id: Optional[str] = None) -> None:
-        """Fires warning buzzer (e.g. Smoking in restricted zone)."""
-        self.active_warning = True
-        if alert_id:
-            self.active_alert_ids.add(alert_id)
-        print(f"\n[ALARM WARNING] {hazard_type.upper()} on {camera_id}: {details}")
+    def _output(self, active):
+        if self.gpio_available:
+            try:
+                import RPi.GPIO as GPIO
+                GPIO.output(self.relay_pin, GPIO.HIGH if active else GPIO.LOW)
+            except Exception:
+                logger.exception("GPIO output failed")
 
-    def unlatch(self, clear_alert_ids: list) -> None:
-        """
-        Unlatches the physical relay when supervisor acknowledges/resolves alerts on the server.
-        """
-        if not clear_alert_ids:
+    def _persist(self):
+        if not self.state_path:
             return
+        try:
+            self.state_path.parent.mkdir(parents=True, exist_ok=True)
+            temp = self.state_path.with_suffix(".tmp")
+            temp.write_text(json.dumps({"active": sorted(self.active_alert_ids), "critical": sorted(self.critical_alert_ids), "cleared": sorted(self.cleared_alert_ids)}))
+            temp.replace(self.state_path)
+        except Exception:
+            logger.exception("Alarm remains active; state persistence failed")
 
-        cleared_any = False
-        for aid in clear_alert_ids:
-            if aid == "*" or aid in self.active_alert_ids:
-                if aid in self.active_alert_ids:
-                    self.active_alert_ids.remove(aid)
-                cleared_any = True
+    def trigger_critical(self, camera_id, hazard_type, details="", alert_id=None):
+        if not alert_id:
+            raise ValueError("A stable incident ID is required for alarm activation")
+        with self._lock:
+            if alert_id in self.cleared_alert_ids:
+                return
+            # Assert the output before disk, logging or network operations.
+            self._output(True)
+            self.active_critical = True
+            self.active_alert_ids.add(alert_id)
+            self.critical_alert_ids.add(alert_id)
+            self._persist()
+        logger.warning("Local %s alarm: %s on %s", "GPIO" if self.gpio_available else "state-only", hazard_type, camera_id)
 
-        if "*" in clear_alert_ids or len(self.active_alert_ids) == 0:
-            if self.active_critical or self.active_warning:
-                logger.info(f"[*] All active alarm IDs cleared ({clear_alert_ids}). Unlatching physical siren/relay.")
-                self.silence()
-        elif cleared_any:
-            logger.info(f"[*] Partially cleared alert IDs. Remaining active alarms: {len(self.active_alert_ids)}")
+    def trigger_warning(self, camera_id, hazard_type, details="", alert_id=None):
+        if not alert_id:
+            raise ValueError("A stable incident ID is required")
+        with self._lock:
+            if alert_id not in self.cleared_alert_ids:
+                self.active_warning = True
+                self.active_alert_ids.add(alert_id)
+                self._persist()
 
-    def silence(self) -> None:
-        """Silences all active buzzers and resets relays."""
-        self.active_critical = False
-        self.active_warning = False
-        self.active_alert_ids.clear()
-        if self.gpio_available and self.relay_pin is not None:
-            try:
-                import RPi.GPIO as GPIO # type: ignore
-                GPIO.output(self.relay_pin, GPIO.LOW)
-            except Exception:
-                pass
-        print("[*] Local alarm silenced and relay reset.")
+    def unlatch(self, clear_alert_ids):
+        with self._lock:
+            matched = self.active_alert_ids.intersection(clear_alert_ids)
+            if not matched:
+                return
+            self.active_alert_ids.difference_update(matched)
+            self.critical_alert_ids.difference_update(matched)
+            self.cleared_alert_ids.update(matched)
+            if not self.critical_alert_ids:
+                self._output(False)
+                self.active_critical = False
+            self.active_warning = bool(self.active_alert_ids - self.critical_alert_ids)
+            self._persist()
 
-# Global singleton
+    def active_ids(self):
+        with self._lock:
+            return list(self.active_alert_ids)
+
+    def silence(self):
+        """Explicit maintenance operation, never used by normal worker shutdown."""
+        with self._lock:
+            self._output(False)
+            self.active_alert_ids.clear()
+            self.critical_alert_ids.clear()
+            self.active_critical = self.active_warning = False
+            self._persist()
+
 alarm_controller = LocalAlarmController()

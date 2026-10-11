@@ -1,31 +1,24 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-
+import { PrismaService } from '../../prisma/prisma.service';
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest();
-    const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
-
-    if (!token) {
-      throw new UnauthorizedException({ code: 'UNAUTHORIZED', message: 'Authentication token missing' });
+    constructor(private jwt: JwtService, private prisma: PrismaService) { }
+    async canActivate(context: ExecutionContext) {
+        const req = context.switchToHttp().getRequest();
+        const token = req.cookies?.token || req.headers.authorization?.replace(/^Bearer /, '');
+        try {
+            if (!token)
+                throw Error();
+            const payload = await this.jwt.verifyAsync(token);
+            const user = await this.prisma.user.findUnique({ where: { id: payload.id }, select: { id: true, email: true, name: true, role: true } });
+            if (!user)
+                throw Error();
+            req.user = user;
+            return true;
+        }
+        catch {
+            throw new UnauthorizedException('Sign in to continue');
+        }
     }
-
-    try {
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET || 'factory-safety-ai-jwt-secret-key-2026-super-secure',
-      });
-      req.user = payload;
-      return true;
-    } catch {
-      throw new UnauthorizedException({ code: 'INVALID_TOKEN', message: 'Token expired or invalid' });
-    }
-  }
 }

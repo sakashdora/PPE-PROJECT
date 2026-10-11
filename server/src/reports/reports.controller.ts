@@ -9,6 +9,9 @@ import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 export class ReportsController {
   constructor(private reportsService: ReportsService) {}
 
+  @Get('overview')
+  async overview() { return this.reportsService.overview(); }
+
   @Get('compliance')
   @Roles('SUPERVISOR', 'ADMIN')
   async exportComplianceCsv(
@@ -26,7 +29,7 @@ export class ReportsController {
   }
 
   @Get('aggregates')
-  async getAggregates() {
-    return this.reportsService.getAggregates();
+  async getAggregates(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.reportsService.getAggregates({ from, to });
   }
 }

@@ -9,6 +9,9 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
+from typing import Literal
+
+PROJECT_ROOT = Path(os.environ.get("FACTORY_ROOT", str(Path(__file__).resolve().parents[2])))
 
 class ZoneConfig(BaseModel):
     id: str
@@ -27,17 +30,17 @@ class CameraConfig(BaseModel):
     zones: List[ZoneConfig] = []
 
 class ThresholdsConfig(BaseModel):
-    person: float = 0.50
-    helmet: float = 0.65
-    head: float = 0.30          # Bare head
-    vest: float = 0.65
-    gloves: float = 0.30
-    boots: float = 0.30
-    no_gloves: float = 0.35
-    no_boots: float = 0.35
-    fire: float = 0.30          # Safety critical — recall first
-    smoke: float = 0.25         # Safety critical — recall first
-    cigarette: float = 0.30
+    person: float = 0.38        # Calibrated for reliable worker detection (preserves distant/partially occluded workers)
+    helmet: float = 0.35        # Detects white, yellow, and colored hardhats accurately
+    head: float = 0.45          # Bare head detection threshold (confident detection to avoid false violations)
+    vest: float = 0.40          # Hi-vis torso compliance (rejects normal shirts and background clutter)
+    gloves: float = 0.40        # Hand protection compliance
+    boots: float = 0.40         # Steel-toe footwear compliance
+    no_gloves: float = 0.45     # Bare hands violation
+    no_boots: float = 0.45      # Footwear violation
+    fire: float = 0.40          # Safety critical fire detection (high recall, rejects glare/welding flashes)
+    smoke: float = 0.35         # Safety critical smoke detection (high recall, rejects steam/dust/blur)
+    cigarette: float = 0.40     # Restricted smoking detection
 
 class TemporalVoterConfig(BaseModel):
     fire_window: int = 5
@@ -55,9 +58,12 @@ class EdgeConfig(BaseModel):
     api_key: str = "edge-api-key-factory-plant-01"
     heartbeat_interval_sec: int = 5
     cooldown_seconds: int = 60
-    db_path: str = "outbox.db"
+    db_path: str = str(PROJECT_ROOT / "outbox.db")
+    snapshot_dir: str = str(PROJECT_ROOT / "snapshots")
+    mode: Literal["onnx", "mock"] = "onnx"
+    relay_pin: Optional[int] = None
     mjpeg_port: int = 8080
-    model_path: str = "models/best_s5.onnx"
+    model_path: str = str(PROJECT_ROOT / "models" / "best_s5.onnx")
     cameras: List[CameraConfig] = Field(default_factory=lambda: [
         CameraConfig(
             id="cam-01",
@@ -104,10 +110,21 @@ def load_config(config_path: str = "edge_config.json") -> EdgeConfig:
         try:
             with open(p, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            for env, key in [("SERVER_URL", "server_url"), ("EDGE_API_KEY", "api_key"), ("MODEL_PATH", "model_path"), ("DB_PATH", "db_path"), ("EDGE_MODE", "mode"), ("SNAPSHOTS_DIR", "snapshot_dir")]:
+                if env in os.environ:
+                    data[key] = os.environ[env]
+            if os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes", "on"):
+                data["mode"] = "mock"
             return EdgeConfig(**data)
         except Exception as e:
-            print(f"[!] Warning: Failed parsing {config_path} ({e}). Using defaults.")
-    return EdgeConfig()
+            raise ValueError(f"Invalid edge configuration: {config_path}") from e
+    data = {}
+    for env, key in [("SERVER_URL", "server_url"), ("EDGE_API_KEY", "api_key"), ("MODEL_PATH", "model_path"), ("DB_PATH", "db_path"), ("EDGE_MODE", "mode"), ("SNAPSHOTS_DIR", "snapshot_dir"), ("MJPEG_PORT", "mjpeg_port"), ("RELAY_PIN", "relay_pin")]:
+        if env in os.environ:
+            data[key] = os.environ[env]
+    if os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes", "on"):
+        data["mode"] = "mock"
+    return EdgeConfig(**data)
 
 def save_config(config: EdgeConfig, config_path: str = "edge_config.json") -> None:
     """Persist active configuration to disk."""
